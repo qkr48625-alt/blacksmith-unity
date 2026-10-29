@@ -22,11 +22,27 @@ MonoBehaviour:
     name: "\uD615\uC0C1"
     weight: 0.7
     minigame: 
+    station: 1
+    requires:
+    - fold.sort
+    needsWorkpiece: 1
+    producesState: Blade
   - key: mark
     name: "\uB9C8\uD06C \uAC01\uC778"
     weight: 0.15
     minigame: 
+    station: 1
+    requires:
+    - shape.form
+    needsWorkpiece: 1
+    producesState: 
   - key: normalize
     name: "\uBD88\uB9BC"
     weight: 0.15
     minigame: 
+    station: 0
+    requires:
+    - shape.form
+    needsWorkpiece: 1
+    producesState: 
+  metaVersion: 1

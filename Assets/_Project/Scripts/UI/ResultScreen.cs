@@ -1,25 +1,26 @@
+using System;
 using Blacksmith.Crafting;
 using UnityEngine.UIElements;
 
 namespace Blacksmith.UI
 {
     // 완성 화면 · 보관함 기록 보기: 등급, 능력치, 공정별 점수와 세부 단계 측정값.
+    // 1차 UI 화면과 3D 대장간이 함께 쓴다. recipe 는 없어도 된다(옛 기록).
     public sealed class ResultScreen : IScreen
     {
         public VisualElement Root { get; }
 
-        public ResultScreen(AppRoot app, CraftRecord record, bool fresh)
+        public ResultScreen(RecipeDef recipe, CraftRecord record, bool fresh, Action onClose, string closeLabel = "대장간으로")
         {
             var scroll = new ScrollView(ScrollViewMode.Vertical);
             scroll.AddToClassList("screen");
             Root = scroll;
 
-            var recipe = app.RecipeByKey(record.recipeKey);
             var tier = Scoring.TierByKey(record.tierKey);
 
             var head = Ui.Row("space-between");
             head.Add(Ui.Label(fresh ? $"{record.recipeName} 완성!" : $"{record.recipeName} · {record.finishedAt}", "muted"));
-            head.Add(Ui.Button("대장간으로", app.ShowWorkshop, "btn-small"));
+            head.Add(Ui.Button(closeLabel, onClose, "btn-small"));
             scroll.Add(head);
 
             var hero = Ui.Box("panel", "hero");

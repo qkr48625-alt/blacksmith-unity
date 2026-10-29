@@ -22,11 +22,27 @@ MonoBehaviour:
     name: "\uADF8\uB9BD \uAD6C\uBA4D"
     weight: 0.25
     minigame: 
+    station: 4
+    requires: []
+    needsWorkpiece: 0
+    producesState: 
   - key: assemble
     name: "\uC870\uB9BD"
     weight: 0.15
     minigame: 
+    station: 4
+    requires:
+    - grind.hone
+    - handle.awl
+    needsWorkpiece: 1
+    producesState: 
   - key: rivet
     name: "\uB9AC\uBCB3"
     weight: 0.6
     minigame: 
+    station: 1
+    requires:
+    - handle.assemble
+    needsWorkpiece: 1
+    producesState: Dagger
+  metaVersion: 1

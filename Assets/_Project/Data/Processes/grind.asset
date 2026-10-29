@@ -22,7 +22,18 @@ MonoBehaviour:
     name: "\uC22B\uB3CC \uAC08\uAE30"
     weight: 0.7
     minigame: 
+    station: 3
+    requires:
+    - temper.temper
+    needsWorkpiece: 1
+    producesState: Ground
   - key: hone
     name: "\uB0A0 \uC138\uC6B0\uAE30"
     weight: 0.3
     minigame: 
+    station: 3
+    requires:
+    - grind.grind
+    needsWorkpiece: 1
+    producesState: 
+  metaVersion: 1

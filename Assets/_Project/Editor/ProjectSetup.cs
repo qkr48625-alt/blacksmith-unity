@@ -15,12 +15,13 @@ namespace Blacksmith.EditorTools
     // 배치 모드: Unity.exe -batchmode -quit -projectPath . -executeMethod Blacksmith.EditorTools.ProjectSetup.RunBatch
     public static class ProjectSetup
     {
-        const string Root = "Assets/_Project";
+        internal const string Root = "Assets/_Project";
         const string ThemePath = Root + "/UI/Theme.tss";
-        const string StylePath = Root + "/UI/Main.uss";
-        const string PanelPath = Root + "/UI/PanelSettings.asset";
+        internal const string StylePath = Root + "/UI/Main.uss";
+        internal const string PanelPath = Root + "/UI/PanelSettings.asset";
         const string ProcessDir = Root + "/Data/Processes";
         const string RecipeDir = Root + "/Data/Recipes";
+        internal const string DaggerPath = RecipeDir + "/Dagger.asset";
         const string ScenePath = Root + "/Scenes/Main.unity";
 
         [MenuItem("Blacksmith/Setup Project")]
@@ -29,10 +30,63 @@ namespace Blacksmith.EditorTools
             ConfigurePlayer();
             EnsurePanelSettings();
             EnsureDaggerRecipe();
+            ApplyPartMeta();
             AssetDatabase.SaveAssets();
+            RenderSetup.Ensure();
             EnsureScene();
+            WorkshopSceneBuilder.Ensure(rebuild: false);
+            // 3D 대장간이 먼저(실행하면 이 씬으로 시작), 1차 UI 화면은 비교용으로 남긴다
+            EditorBuildSettings.scenes = new[]
+            {
+                new EditorBuildSettingsScene(WorkshopSceneBuilder.ScenePath, true),
+                new EditorBuildSettingsScene(ScenePath, true),
+            };
             AssetDatabase.SaveAssets();
             Debug.Log("[Setup] 완료");
+        }
+
+        // 작업대 · 선행 관계 · 작업물 조건 · 작업물 상태(3D 재설계 §9). metaVersion 이 낮은 공정만 채워서 손으로 고친 값을 지킨다.
+        // (작업대, 선행 단계들, 작업물 필요, 끝나면 작업물 상태)
+        static readonly Dictionary<string, (StationKind station, string[] requires, bool piece, string produces)> PartMeta = new()
+        {
+            ["smelt.bellows"] = (StationKind.Forge, new string[0], false, "Bloom"),
+            ["smelt.slag"] = (StationKind.Forge, new[] { "smelt.bellows" }, false, ""),
+            ["fold.fold"] = (StationKind.Anvil, new[] { "smelt.slag" }, true, "Bar"),
+            ["fold.sort"] = (StationKind.Anvil, new[] { "fold.fold" }, false, ""),
+            ["shape.form"] = (StationKind.Anvil, new[] { "fold.sort" }, true, "Blade"),
+            ["shape.mark"] = (StationKind.Anvil, new[] { "shape.form" }, true, ""),
+            ["shape.normalize"] = (StationKind.Forge, new[] { "shape.form" }, true, ""),
+            ["temper.quench"] = (StationKind.Quench, new[] { "shape.mark", "shape.normalize" }, true, "Hardened"),
+            ["temper.temper"] = (StationKind.Forge, new[] { "temper.quench" }, true, ""),
+            ["grind.grind"] = (StationKind.Grind, new[] { "temper.temper" }, true, "Ground"),
+            ["grind.hone"] = (StationKind.Grind, new[] { "grind.grind" }, true, ""),
+            ["handle.awl"] = (StationKind.Bench, new string[0], false, ""),
+            ["handle.assemble"] = (StationKind.Bench, new[] { "grind.hone", "handle.awl" }, true, ""),
+            ["handle.rivet"] = (StationKind.Anvil, new[] { "handle.assemble" }, true, "Dagger"),
+            ["sheath.form"] = (StationKind.Bench, new[] { "shape.form" }, false, ""),
+            ["sheath.stamp"] = (StationKind.Bench, new[] { "sheath.form" }, false, ""),
+            ["sheath.stitch"] = (StationKind.Bench, new[] { "sheath.stamp" }, false, ""),
+        };
+
+        const int MetaVersion = 1;
+
+        static void ApplyPartMeta()
+        {
+            foreach (var guid in AssetDatabase.FindAssets("t:ProcessDef", new[] { ProcessDir }))
+            {
+                var def = AssetDatabase.LoadAssetAtPath<ProcessDef>(AssetDatabase.GUIDToAssetPath(guid));
+                if (def == null || def.metaVersion >= MetaVersion) continue;
+                foreach (var p in def.parts)
+                {
+                    if (!PartMeta.TryGetValue($"{def.key}.{p.key}", out var m)) continue;
+                    p.station = m.station;
+                    p.requires = new List<string>(m.requires);
+                    p.needsWorkpiece = m.piece;
+                    p.producesState = m.produces;
+                }
+                def.metaVersion = MetaVersion;
+                EditorUtility.SetDirty(def);
+            }
         }
 
         public static void RunBatch()

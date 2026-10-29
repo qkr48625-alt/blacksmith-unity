@@ -22,7 +22,17 @@ MonoBehaviour:
     name: "\uD480\uBB34\uC9C8"
     weight: 0.7
     minigame: bellows
+    station: 0
+    requires: []
+    needsWorkpiece: 0
+    producesState: Bloom
   - key: slag
     name: "\uC2AC\uB798\uADF8 \uBC30\uCD9C"
     weight: 0.3
     minigame: 
+    station: 0
+    requires:
+    - smelt.bellows
+    needsWorkpiece: 0
+    producesState: 
+  metaVersion: 1

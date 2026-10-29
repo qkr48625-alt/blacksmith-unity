@@ -209,3 +209,62 @@ Label {
 .placeholder { align-items: flex-start; }
 .placeholder__slider { width: 480px; margin-top: 12px; }
 .placeholder__slider Label { min-width: 60px; }
+
+/* ── 3D 대장간 HUD ─────────────────────────────── */
+.hud { flex-grow: 1; font-size: 17px; }
+.hud-order {
+    position: absolute;
+    left: 16px;
+    top: 16px;
+    width: 300px;
+    background-color: rgba(12, 10, 9, 0.82);
+}
+.hud-order__list { margin-top: 6px; }
+.hud-order__line { color: #d6d3d1; }
+.hud-toasts { position: absolute; top: 16px; left: 340px; right: 340px; align-items: center; }
+.hud-toast { background-color: rgba(12, 10, 9, 0.85); border-color: var(--amber-deep); margin: 4px 0; padding: 8px 16px; }
+.hud-warning {
+    position: absolute;
+    top: 120px;
+    left: 0;
+    right: 0;
+    -unity-text-align: middle-center;
+    font-size: 26px;
+    -unity-font-style: bold;
+    color: var(--red);
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9);
+}
+.hud-panel-host { position: absolute; left: 0; right: 0; top: 140px; align-items: center; }
+.hud-bottom { position: absolute; left: 0; right: 0; bottom: 16px; align-items: center; }
+.hud-options { flex-direction: row; flex-wrap: wrap; justify-content: center; margin-bottom: 6px; }
+.hud-options > .btn { margin: 0 6px 6px 6px; }
+.btn-option { background-color: #44403c; }
+.hud-hint, .hud-prompt {
+    background-color: rgba(12, 10, 9, 0.85);
+    padding: 8px 16px;
+    margin: 4px 0;
+    max-width: 900px;
+    -unity-text-align: middle-center;
+}
+.hud-prompt { border-color: var(--amber-deep); -unity-font-style: bold; }
+.hud-overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    align-items: center;
+    justify-content: center;
+}
+.hud-overlay__body { width: 80%; max-width: 980px; max-height: 88%; }
+.overlay-card {
+    background-color: var(--bg);
+    border-radius: 16px;
+    border-width: 1px;
+    border-color: var(--line-strong);
+    padding: 20px 28px;
+    flex-grow: 1;
+    flex-shrink: 1;
+}
+.overlay-scroll { max-height: 420px; }

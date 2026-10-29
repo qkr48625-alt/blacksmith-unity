@@ -14,21 +14,26 @@ namespace Blacksmith.Core
         public bool hasRun;
         public CraftRun run = new();
         public List<CraftRecord> collection = new();
+        // 과열로 버린 작업물 수
+        public int ruined;
     }
 
-    // 저장 파일 하나(persistentDataPath/blacksmith-save.json). 임시 파일에 쓴 뒤 바꿔 끼워 반쯤 쓰인 파일이 남지 않게 한다.
+    // 저장 파일 하나(persistentDataPath 아래). 임시 파일에 쓴 뒤 바꿔 끼워 반쯤 쓰인 파일이 남지 않게 한다.
+    // 1차 UI 화면과 3D 대장간은 진행 방식이 달라서 파일을 나눈다.
     public static class SaveSystem
     {
-        const string FileName = "blacksmith-save.json";
+        public const string UiPrototypeFile = "blacksmith-save.json";
+        public const string WorkshopFile = "blacksmith-workshop.json";
 
-        static string PathOf => Path.Combine(Application.persistentDataPath, FileName);
+        static string PathOf(string file) => Path.Combine(Application.persistentDataPath, file);
 
-        public static SaveData Load()
+        public static SaveData Load(string file = UiPrototypeFile)
         {
+            var path = PathOf(file);
             try
             {
-                if (!File.Exists(PathOf)) return new SaveData();
-                var data = JsonUtility.FromJson<SaveData>(File.ReadAllText(PathOf));
+                if (!File.Exists(path)) return new SaveData();
+                var data = JsonUtility.FromJson<SaveData>(File.ReadAllText(path));
                 return data ?? new SaveData();
             }
             catch (Exception e)
@@ -38,14 +43,15 @@ namespace Blacksmith.Core
             }
         }
 
-        public static void Save(SaveData data)
+        public static void Save(SaveData data, string file = UiPrototypeFile)
         {
+            var path = PathOf(file);
             try
             {
-                var tmp = PathOf + ".tmp";
+                var tmp = path + ".tmp";
                 File.WriteAllText(tmp, JsonUtility.ToJson(data, true));
-                if (File.Exists(PathOf)) File.Replace(tmp, PathOf, null);
-                else File.Move(tmp, PathOf);
+                if (File.Exists(path)) File.Replace(tmp, path, null);
+                else File.Move(tmp, path);
             }
             catch (Exception e)
             {

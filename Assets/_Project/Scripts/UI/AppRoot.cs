@@ -111,10 +111,10 @@ namespace Blacksmith.UI
             Save.hasRun = false;
             Save.run = new CraftRun();
             Persist();
-            Show(new ResultScreen(this, record, fresh: true));
+            Show(new ResultScreen(recipe, record, true, ShowWorkshop));
         }
 
-        public void ShowRecord(CraftRecord record) => Show(new ResultScreen(this, record, fresh: false));
+        public void ShowRecord(CraftRecord record) => Show(new ResultScreen(RecipeByKey(record.recipeKey), record, false, ShowWorkshop));
 
         void Show(IScreen screen)
         {
@@ -123,7 +123,7 @@ namespace Blacksmith.UI
             _host.Add(screen.Root);
         }
 
-        static void ApplyKoreanFont(VisualElement root)
+        public static void ApplyKoreanFont(VisualElement root)
         {
             foreach (var family in KoreanFonts)
             {

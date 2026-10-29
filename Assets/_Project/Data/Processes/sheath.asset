@@ -22,11 +22,27 @@ MonoBehaviour:
     name: "\uAC00\uC8FD \uC131\uD615"
     weight: 0.3
     minigame: 
+    station: 4
+    requires:
+    - shape.form
+    needsWorkpiece: 0
+    producesState: 
   - key: stamp
     name: "\uB3C4\uC7A5 \uAFB8\uBBF8\uAE30"
     weight: 0.35
     minigame: 
+    station: 4
+    requires:
+    - sheath.form
+    needsWorkpiece: 0
+    producesState: 
   - key: stitch
     name: "\uB9AC\uB4EC \uBC14\uB290\uC9C8"
     weight: 0.35
     minigame: 
+    station: 4
+    requires:
+    - sheath.stamp
+    needsWorkpiece: 0
+    producesState: 
+  metaVersion: 1

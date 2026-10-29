@@ -45,6 +45,13 @@ namespace Blacksmith.Crafting
         public int seed;
         public List<StageRecord> stages = new();
         public string startedAt;
+        // 3D 대장간: 작업물 상태(WorkpieceState 이름, 비면 아직 없음)와 지금까지 탄 시간(초)
+        public string workpieceState;
+        public float burnTotal;
+
+        public StageRecord Stage(string stageKey) => stages.Find(s => s.key == stageKey);
+
+        public bool IsDone(string stageKey, string partKey) => Stage(stageKey)?.Part(partKey) != null;
 
         // 지금 하고 있는(아직 점수가 안 난) 공정 번호. stages 마지막이 덜 끝났으면 그 공정이다.
         public int CurrentStageIndex(RecipeDef recipe)

@@ -22,7 +22,18 @@ MonoBehaviour:
     name: "\uC811\uAE30 \uB2E8\uC811"
     weight: 0.8
     minigame: fold
+    station: 1
+    requires:
+    - smelt.slag
+    needsWorkpiece: 1
+    producesState: Bar
   - key: sort
     name: "\uC7AC\uC9C8 \uBD84\uB958"
     weight: 0.2
     minigame: 
+    station: 1
+    requires:
+    - fold.fold
+    needsWorkpiece: 0
+    producesState: 
+  metaVersion: 1

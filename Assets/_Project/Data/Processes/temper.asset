@@ -22,7 +22,19 @@ MonoBehaviour:
     name: "\uB2F4\uAE08\uC9C8"
     weight: 0.5
     minigame: 
+    station: 2
+    requires:
+    - shape.mark
+    - shape.normalize
+    needsWorkpiece: 1
+    producesState: Hardened
   - key: temper
     name: "\uB728\uC784"
     weight: 0.5
     minigame: 
+    station: 0
+    requires:
+    - temper.quench
+    needsWorkpiece: 1
+    producesState: 
+  metaVersion: 1
