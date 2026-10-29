@@ -40,6 +40,19 @@ namespace Blacksmith.World
             _agent.angularSpeed = 720f;
             _agent.acceleration = 30f;
             _agent.stoppingDistance = 0.05f;
+            CenterBody();
+        }
+
+        // 예전에 지은 씬은 몸 조각이 중심축에서 비켜나 있어, 돌 때 몸이 원을 그린다. 보이는 조각만 중심으로 옮긴다.
+        // (Hold Point 는 원래 중심 기준으로 놓였으므로 그대로 둔다)
+        void CenterBody()
+        {
+            var body = transform.Find("Body");
+            if (body == null) return;
+            var off = new Vector3(body.localPosition.x, 0f, body.localPosition.z);
+            if (off.sqrMagnitude < 1e-4f) return;
+            foreach (Transform c in transform)
+                if (c.GetComponent<Renderer>() != null) c.localPosition -= off;
         }
 
         public void Init(Station[] stations)

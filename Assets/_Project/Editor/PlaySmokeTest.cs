@@ -58,6 +58,7 @@ namespace Blacksmith.EditorTools
                 var tri = NavMesh.CalculateTriangulation();
                 Line($"navmesh triangles={tri.indices.Length / 3}");
                 Line($"player found={player != null} agentEnabled={agent != null && agent.enabled} onNavMesh={agent != null && agent.isOnNavMesh} pos={player?.transform.position}");
+                Line($"body local={player?.transform.Find("Body")?.localPosition} (x·z 가 0 이어야 제자리에서 돈다)");
                 Line($"keyboard={Keyboard.current != null} mouse={Mouse.current != null}");
                 Capture("smoke-start.png");
                 // 창 없는 Unity 는 앱 포커스가 없어서, 포커스를 무시해야 가상 키보드 입력이 들어간다
