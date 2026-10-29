@@ -61,6 +61,16 @@ namespace Blacksmith.World
             rack = rackRoot;
         }
 
+        void Awake()
+        {
+#if UNITY_EDITOR
+            // 에디터 기본값은 Game 창에 포커스가 있을 때만 키보드가 게임으로 간다.
+            // ▶ 뒤에 다른 창을 눌러 두면 WASD 가 안 먹어서, 플레이 중에는 늘 게임으로 보낸다.
+            InputSystem.settings.editorInputBehaviorInPlayMode =
+                InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
+#endif
+        }
+
         void Start()
         {
             _save = SaveSystem.Load(SaveSystem.WorkshopFile);

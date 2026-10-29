@@ -34,9 +34,30 @@ namespace Blacksmith.EditorTools
             Ensure(rebuild: true);
         }
 
+        public static void RebuildBatch()
+        {
+            try
+            {
+                RenderSetup.Ensure();
+                Ensure(rebuild: true);
+                AssetDatabase.SaveAssets();
+                EditorApplication.Exit(0);
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogException(e);
+                EditorApplication.Exit(1);
+            }
+        }
+
+        // 다시 지을 때는 재질 색 · 후처리 값도 이 파일의 값으로 되돌린다
+        static bool _refresh;
+
         public static void Ensure(bool rebuild)
         {
             if (File.Exists(ScenePath) && !rebuild) return;
+            _refresh = rebuild;
+            if (rebuild) RenderSetup.TuneVolume();
             EnsureMaterials();
 
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
@@ -83,8 +104,9 @@ namespace Blacksmith.EditorTools
         static void EnsureMaterials()
         {
             EnsureFolder(MatDir);
-            Lit("Floor", new Color(0.22f, 0.17f, 0.13f), 0f, 0.15f);
-            Lit("Wall", new Color(0.32f, 0.27f, 0.22f), 0f, 0.05f);
+            Lit("Floor", new Color(0.36f, 0.3f, 0.24f), 0f, 0.15f);
+            Lit("Wall", new Color(0.46f, 0.4f, 0.33f), 0f, 0.05f);
+            Lit("Lantern", new Color(1f, 0.85f, 0.6f), 0f, 0.3f, new Color(1f, 0.7f, 0.4f) * 3f);
             Lit("Stone", new Color(0.36f, 0.34f, 0.33f), 0f, 0.1f);
             Lit("Wood", new Color(0.42f, 0.27f, 0.15f), 0f, 0.25f);
             Lit("Iron", new Color(0.22f, 0.22f, 0.24f), 0.85f, 0.55f);
@@ -105,6 +127,14 @@ namespace Blacksmith.EditorTools
         {
             var path = $"{MatDir}/{name}.mat";
             var m = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (m != null && _refresh)
+            {
+                m.SetColor("_BaseColor", color);
+                m.SetFloat("_Metallic", metallic);
+                m.SetFloat("_Smoothness", smooth);
+                if (emission.HasValue) m.SetColor("_EmissionColor", emission.Value);
+                EditorUtility.SetDirty(m);
+            }
             if (m == null)
             {
                 m = new Material(Shader.Find("Universal Render Pipeline/Lit"));
@@ -153,17 +183,37 @@ namespace Blacksmith.EditorTools
 
         static void BuildLighting(VolumeProfile profile)
         {
-            RenderSettings.ambientMode = AmbientMode.Flat;
-            RenderSettings.ambientLight = new Color(0.16f, 0.13f, 0.11f);
+            // 위는 밝고 바닥 쪽은 어두운 세 갈래 주변광(검게 뭉개지지 않게)
+            RenderSettings.ambientMode = AmbientMode.Trilight;
+            RenderSettings.ambientSkyColor = new Color(0.5f, 0.47f, 0.44f);
+            RenderSettings.ambientEquatorColor = new Color(0.36f, 0.31f, 0.27f);
+            RenderSettings.ambientGroundColor = new Color(0.17f, 0.14f, 0.11f);
             RenderSettings.skybox = null;
 
-            // 창으로 드는 희미한 푸른 낮빛
+            // 창으로 드는 낮빛
             var sun = new GameObject("Window Light").AddComponent<Light>();
             sun.type = LightType.Directional;
-            sun.color = new Color(0.6f, 0.7f, 0.9f);
-            sun.intensity = 0.35f;
+            sun.color = new Color(1f, 0.93f, 0.82f);
+            sun.intensity = 1.1f;
             sun.shadows = LightShadows.Soft;
-            sun.transform.rotation = Quaternion.Euler(55f, -35f, 0f);
+            sun.shadowStrength = 0.7f;
+            sun.transform.rotation = Quaternion.Euler(52f, -30f, 0f);
+
+            // 천장 등불: 뒤쪽 둘은 매단 등이 보이고, 앞쪽은 빛만 둔다(앞에 매달면 카메라와 대장장이 사이를 가린다)
+            var lanterns = new GameObject("Lanterns").transform;
+            foreach (var (p, visible) in new[] { (new Vector3(-2.2f, 2.8f, 1.4f), true), (new Vector3(2.2f, 2.8f, 1.4f), true), (new Vector3(0f, 2.8f, -2.4f), false) })
+            {
+                var l = new GameObject("Lantern Light").AddComponent<Light>();
+                l.transform.SetParent(lanterns, false);
+                l.transform.position = p;
+                l.type = LightType.Point;
+                l.color = new Color(1f, 0.78f, 0.5f);
+                l.intensity = 3f;
+                l.range = 7f;
+                if (!visible) continue;
+                Prim("Lantern", PrimitiveType.Cube, lanterns, p + new Vector3(0f, 0.1f, 0f), new Vector3(0.14f, 0.2f, 0.14f), "Lantern", collider: false);
+                Prim("Cord", PrimitiveType.Cube, lanterns, p + new Vector3(0f, 0.45f, 0f), new Vector3(0.015f, 0.5f, 0.015f), "Iron", collider: false);
+            }
 
             // 작업대 위 등잔
             var lamp = new GameObject("Bench Lamp").AddComponent<Light>();

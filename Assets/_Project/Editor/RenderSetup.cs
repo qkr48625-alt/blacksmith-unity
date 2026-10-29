@@ -60,27 +60,41 @@ namespace Blacksmith.EditorTools
             var profile = ScriptableObject.CreateInstance<VolumeProfile>();
             AssetDatabase.CreateAsset(profile, VolumePath);
 
-            var bloom = profile.Add<Bloom>(true);
-            bloom.threshold.Override(1f);
-            bloom.intensity.Override(1.2f);
-            bloom.scatter.Override(0.65f);
-
-            var tone = profile.Add<Tonemapping>(true);
-            tone.mode.Override(TonemappingMode.ACES);
-
-            var vignette = profile.Add<Vignette>(true);
-            vignette.intensity.Override(0.32f);
-            vignette.smoothness.Override(0.45f);
-
-            var color = profile.Add<ColorAdjustments>(true);
-            color.postExposure.Override(0.3f);
-            color.contrast.Override(8f);
-
+            profile.Add<Bloom>(true);
+            profile.Add<Tonemapping>(true);
+            profile.Add<Vignette>(true);
+            profile.Add<ColorAdjustments>(true);
             foreach (var c in profile.components)
             {
                 c.hideFlags = HideFlags.HideInInspector | HideFlags.HideInHierarchy;
                 AssetDatabase.AddObjectToAsset(c, profile);
             }
+            TuneVolume();
+        }
+
+        // 후처리 값. 씬을 다시 지을 때도 이 값으로 되돌린다.
+        public static void TuneVolume()
+        {
+            var profile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(VolumePath);
+            if (profile == null) return;
+            if (profile.TryGet(out Bloom bloom))
+            {
+                bloom.threshold.Override(1f);
+                bloom.intensity.Override(1.2f);
+                bloom.scatter.Override(0.65f);
+            }
+            if (profile.TryGet(out Tonemapping tone)) tone.mode.Override(TonemappingMode.ACES);
+            if (profile.TryGet(out Vignette vignette))
+            {
+                vignette.intensity.Override(0.18f);
+                vignette.smoothness.Override(0.5f);
+            }
+            if (profile.TryGet(out ColorAdjustments color))
+            {
+                color.postExposure.Override(0.4f);
+                color.contrast.Override(6f);
+            }
+            foreach (var c in profile.components) EditorUtility.SetDirty(c);
             EditorUtility.SetDirty(profile);
             AssetDatabase.SaveAssets();
         }
