@@ -5,7 +5,7 @@ using UnityEngine.InputSystem;
 
 namespace Blacksmith.World
 {
-    // 대장장이. WASD 로 걷고(카메라 기준 방향), 바닥을 클릭하면 그리로 걸어간다.
+    // 대장장이. WASD(카메라 기준 방향)를 톡 누르면 그쪽을 쳐다보고, 누르고 있으면 그쪽으로 걷는다. 바닥을 클릭하면 그리로 걸어간다.
     // 작업대를 클릭하면 그 앞까지 걸어가서 붙고, 작업대 가까이에서 E 를 눌러도 붙는다.
     [RequireComponent(typeof(NavMeshAgent))]
     public class PlayerController : MonoBehaviour
@@ -14,6 +14,11 @@ namespace Blacksmith.World
 
         [SerializeField] Transform holdPoint;
         [SerializeField] float walkSpeed = 3.2f;
+        [SerializeField] float turnSpeed = 900f;   // 누른 방향으로 도는 빠르기(도/초)
+
+        // 이보다 짧게 누르면 그 방향을 쳐다보기만 하고 걷지 않는다(초)
+        const float TapSeconds = 0.15f;
+        float _holdT;
 
         NavMeshAgent _agent;
         Camera _cam;
@@ -76,12 +81,16 @@ namespace Blacksmith.World
             {
                 // 키보드로 움직이면 클릭 이동은 취소한다
                 Stop();
+                _holdT += Time.deltaTime;
                 var fwd = _cam != null ? Vector3.ProjectOnPlane(_cam.transform.forward, Vector3.up).normalized : Vector3.forward;
                 var right = Vector3.Cross(Vector3.up, fwd);
                 var dir = (fwd * move.y + right * move.x).normalized;
-                _agent.Move(dir * walkSpeed * Time.deltaTime);
-                transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(dir), 15f * Time.deltaTime);
+                // 먼저 그 방향으로 몸을 돌린다. 톡 누르면 돌기만 하고, 계속 누르고 있으면 돌아선 뒤 걷는다.
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(dir), turnSpeed * Time.deltaTime);
+                if (_holdT >= TapSeconds && Vector3.Angle(transform.forward, dir) < 25f)
+                    _agent.Move(dir * walkSpeed * Time.deltaTime);
             }
+            else _holdT = 0f;
 
             var mouse = Mouse.current;
             if (mouse != null && mouse.leftButton.wasPressedThisFrame && !WorkshopGame.PointerOverUi) ClickMove(mouse.position.ReadValue());
