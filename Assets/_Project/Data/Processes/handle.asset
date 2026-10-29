@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b15cffcb11fc0649813cfd8a30a106c, type: 3}
+  m_Name: handle
+  m_EditorClassIdentifier: Blacksmith.Runtime::Blacksmith.Crafting.ProcessDef
+  key: handle
+  title: "\uC190\uC7A1\uC774"
+  real: "\uADF8\uB9BD \uAD6C\uBA4D \xB7 \uC870\uB9BD \xB7 \uB9AC\uBCB3 \xB7 \uC2E4\uC81C \uC57D 1~2\uC77C"
+  blurb: "\uADF8\uB9BD \uD1B5\uC5D0 \uC1A1\uACF3\uC73C\uB85C \uC2B4\uBCA0 \uAD6C\uBA4D\uC744 \uB6AB\uACE0, \uC2B4\uBCA0\uC5D0 \uADF8\uB9BD\uACFC \uB860\uB378(\uB0A0\uBC11)\uC744 \uB07C\uC6B4 \uB4A4 \uC704\uB85C \uD280\uC5B4\uB098\uC628 \uC2B4\uBCA0 \uB05D\uC744 \uB9DD\uCE58\uB85C \uB450\uB4DC\uB824 \uD37C\uB728\uB824 \uACE0\uC815\uD569\uB2C8\uB2E4."
+  controls: "\u2460 \uADF8\uB9BD \uAD6C\uBA4D: \uC1A1\uACF3 \uB05D\uC774 \uC606\uC73C\uB85C \uD750\uB974\uC9C0 \uC54A\uAC8C \uAC00\uC6B4\uB370 \uC120\uC744 \uC9C0\uD0B5\uB2C8\uB2E4. \u2461 \uC870\uB9BD: \uC21C\uC11C\uC640 \uBC29\uD5A5\uC5D0 \uB9DE\uCDB0 \uC2B4\uBCA0\uC5D0 \uB07C\uC6C1\uB2C8\uB2E4. \u2462 \uB9AC\uBCB3: \uD798\uC774 \uAE08\uC0C9 \uAD6C\uAC04\uC5D0 \uC654\uC744 \uB54C \uB5BC\uC11C 5\uBC88 \uB450\uB4DC\uB9BD\uB2C8\uB2E4."
+  parts:
+  - key: awl
+    name: "\uADF8\uB9BD \uAD6C\uBA4D"
+    weight: 0.25
+    minigame: 
+  - key: assemble
+    name: "\uC870\uB9BD"
+    weight: 0.15
+    minigame: 
+  - key: rivet
+    name: "\uB9AC\uBCB3"
+    weight: 0.6
+    minigame: 

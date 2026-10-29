@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c91b386ad34b1b246967eea7ad57d3da, type: 3}
+  m_Name: Dagger
+  m_EditorClassIdentifier: Blacksmith.Runtime::Blacksmith.Crafting.RecipeDef
+  key: dagger
+  displayName: "\uB860\uB378 \uB2E8\uAC80"
+  description: "15\uC138\uAE30 \uB860\uB378 \uB300\uAC70. \uCCA0\uAD11\uC11D\uC5D0\uC11C \uCE7C\uC9D1\uAE4C\uC9C0 7\uACF5\uC815\uC744 \uAC70\uCE5C\uB2E4."
+  stages:
+  - process: {fileID: 11400000, guid: 6e7f1e862ef2e8045925bea5cc18ccf6, type: 2}
+    weight: 0.12
+  - process: {fileID: 11400000, guid: 425be04909a0dad43ad500576692c39b, type: 2}
+    weight: 0.15
+  - process: {fileID: 11400000, guid: 208451ce77e5bfc4886a34c2a6abf230, type: 2}
+    weight: 0.23
+  - process: {fileID: 11400000, guid: d416f82356ebced4b8c6bf206b9fd102, type: 2}
+    weight: 0.15
+  - process: {fileID: 11400000, guid: fbe1ef0e874f2c946b90ab3458d6ddae, type: 2}
+    weight: 0.15
+  - process: {fileID: 11400000, guid: 321a44c6a682ca14188d24f0169f4b76, type: 2}
+    weight: 0.1
+  - process: {fileID: 11400000, guid: d4bf332aa2f9ef74eb2dcbf3c6700b9e, type: 2}
+    weight: 0.1
