@@ -12,7 +12,7 @@ using UnityEngine.Rendering.Universal;
 
 namespace Blacksmith.EditorTools
 {
-    // 대장간 씬을 플레이 모드로 돌려 보는 자동 점검. 에러 · 길(NavMesh) · W 키 이동을 확인하고,
+    // 대장간 씬을 플레이 모드로 돌려 보는 자동 점검. 에러 · 길(NavMesh) · W 키 방향 전환을 확인하고,
     // 카메라 화면을 Logs/smoke-*.png 로 찍는다. 결과는 Logs/smoke.txt.
     // 배치 모드: Unity.exe -batchmode -projectPath . -executeMethod Blacksmith.EditorTools.PlaySmokeTest.Run
     // (-nographics 를 붙이면 사진이 안 찍힌다)
@@ -74,7 +74,8 @@ namespace Blacksmith.EditorTools
             if (_frame == 110)
             {
                 var pos = player != null ? player.transform.position : Vector3.zero;
-                Line($"after W: pos={pos} moved={(pos - _startPos).magnitude:0.00}m nearest={player?.Nearest?.DisplayName}");
+                // W 는 제자리에서 돌기만 하므로 moved 는 0 이어야 한다
+                Line($"after W: pos={pos} moved={(pos - _startPos).magnitude:0.00}m yaw={player?.transform.eulerAngles.y:0} nearest={player?.Nearest?.DisplayName}");
                 Capture("smoke-after-move.png");
             }
             if (_frame == 120)
