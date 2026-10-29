@@ -293,8 +293,9 @@ namespace Blacksmith.EditorTools
 
         static PlayerController BuildPlayer()
         {
+            // 몸 조각은 Prim 이 월드 좌표로 놓으므로, 원점에서 조립한 뒤에 자리로 옮긴다.
+            // (먼저 옮기면 몸이 중심축에서 1.2m 떨어져 붙어, 돌 때 큰 원을 그리며 움직인다)
             var p = new GameObject("Blacksmith");
-            p.transform.position = new Vector3(0f, 0f, -1.2f);
             Prim("Body", PrimitiveType.Capsule, p.transform, new Vector3(0f, 0.8f, 0f), new Vector3(0.55f, 0.8f, 0.45f), "Player", collider: false);
             Prim("Head", PrimitiveType.Sphere, p.transform, new Vector3(0f, 1.72f, 0f), Vector3.one * 0.32f, "Player", collider: false);
             Prim("Apron", PrimitiveType.Cube, p.transform, new Vector3(0f, 0.75f, 0.21f), new Vector3(0.42f, 0.7f, 0.05f), "Apron", collider: false);
@@ -304,6 +305,7 @@ namespace Blacksmith.EditorTools
             hold.SetParent(p.transform, false);
             hold.localPosition = new Vector3(0.22f, 1f, 0.72f);
             hold.localRotation = Quaternion.Euler(0f, 90f, 0f);
+            p.transform.position = new Vector3(0f, 0f, -1.2f);
 
             var agent = p.AddComponent<NavMeshAgent>();
             agent.radius = 0.3f;
