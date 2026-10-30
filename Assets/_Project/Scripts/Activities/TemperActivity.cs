@@ -9,7 +9,8 @@ namespace Blacksmith.Activities
     // 금 테를 두른 견본 색에 닿았을 때 클릭(또는 스페이스)으로 집어 올린다. 18초 안에. 수치는 웹 TemperStage.jsx 와 같다.
     public sealed class TemperActivity : ActivityBase
     {
-        const float Seconds = 16f, Limit = 18f, Half = 0.06f;
+        const float Seconds = 16f, Limit = 18f;
+        float Half => 0.06f * Mod("colorHalf", 1f);
         static readonly (float v, Color c)[] Stops =
         {
             (0f, new Color(0.96f, 0.9f, 0.66f)),

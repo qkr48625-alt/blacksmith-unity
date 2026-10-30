@@ -18,6 +18,9 @@ namespace Blacksmith.Core
         public int ruined;
         // 접근성: 쇠 온도를 숫자로도 보여 준다(색 구분이 어려운 사람용, T 키)
         public bool showTemp;
+        // 경영: 날짜 · 돈 · 평판 · 의뢰 · 재료 · 업그레이드, 지금 만드는 한 자루에 쓴 재료
+        public Blacksmith.Economy.EconomyState eco = new();
+        public Blacksmith.Economy.MaterialPick pick = new();
     }
 
     // 저장 파일 하나(persistentDataPath 아래). 임시 파일에 쓴 뒤 바꿔 끼워 반쯤 쓰인 파일이 남지 않게 한다.
@@ -25,7 +28,8 @@ namespace Blacksmith.Core
     public static class SaveSystem
     {
         public const string UiPrototypeFile = "blacksmith-save.json";
-        public const string WorkshopFile = "blacksmith-workshop.json";
+        // 자동 점검은 환경 변수 BLACKSMITH_SAVE 로 다른 파일을 써서 실제 저장을 건드리지 않는다
+        public static string WorkshopFile => Environment.GetEnvironmentVariable("BLACKSMITH_SAVE") is { Length: > 0 } f ? f : "blacksmith-workshop.json";
 
         static string PathOf(string file) => Path.Combine(Application.persistentDataPath, file);
 

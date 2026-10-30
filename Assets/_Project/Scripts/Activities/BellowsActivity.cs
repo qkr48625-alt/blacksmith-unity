@@ -13,7 +13,7 @@ namespace Blacksmith.Activities
     public sealed class BellowsActivity : IStationActivity
     {
         const float Seconds = 30f;
-        const float HalfBand = 50f;
+        float HalfBand = 50f;   // 큰 풀무 업그레이드면 70
         const float FirstCenter = 1150f;
         const float CenterMin = 950f;
         const float CenterMax = 1300f;
@@ -53,6 +53,7 @@ namespace Blacksmith.Activities
         {
             _forge = ctx.Station as ForgeStation;
             _rng = ctx.Game.Rng;
+            HalfBand = ctx.Game.Mod("bandHalf", 50f);
             _nextShift = Hold();
             _next = PickNext();
             _graceT = 3f;   // 처음 불을 끌어올리는 시간

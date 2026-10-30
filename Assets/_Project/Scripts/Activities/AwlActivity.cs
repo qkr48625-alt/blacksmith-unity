@@ -24,7 +24,7 @@ namespace Blacksmith.Activities
 
         public override string Hint => $"누르고 있으면 파고듭니다 · 송곳 끝이 옆으로 흐르니 마우스를 반대로 움직여 금빛 선을 지키세요 · 깊이 {Scoring.Round(_depth * 100)}%";
 
-        float Drift => (0.7f + 0.6f * _depth) * (13f * Mathf.Sin(T * 0.85f + _phase) + 7f * Mathf.Sin(T * 2.1f + _phase * 1.7f)) * Unit;
+        float Drift => Mod("steady", 1f) * (0.7f + 0.6f * _depth) * (13f * Mathf.Sin(T * 0.85f + _phase) + 7f * Mathf.Sin(T * 2.1f + _phase * 1.7f)) * Unit;
 
         protected override void Build()
         {

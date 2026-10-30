@@ -13,7 +13,8 @@ namespace Blacksmith.Activities
     public sealed class NormalizeActivity : ActivityBase
     {
         const int Cycles = 3;
-        const float HeatRate = 0.24f, Cherry = 0.5f, Half = 0.08f, Cold = 0.12f, Rush = 0.6f;
+        const float HeatRate = 0.24f, Cherry = 0.5f, Cold = 0.12f, Rush = 0.6f;
+        float Half => 0.08f * Mod("colorHalf", 1f);
 
         struct Cycle { public float Peak; public bool Rushed; public int Score; }
 

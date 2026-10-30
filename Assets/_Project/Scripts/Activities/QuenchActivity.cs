@@ -11,7 +11,8 @@ namespace Blacksmith.Activities
     // 너무 식었으면(600℃ 아래) 화덕에서 다시 달궈 오는 게 낫다. 웹 TemperStage.jsx 의 담금질을 실제 온도로 옮겼다.
     public sealed class QuenchActivity : ActivityBase
     {
-        const float Cherry = 800f, Half = 120f;
+        const float Cherry = 800f;
+        float Half => 120f * Mod("colorHalf", 1f);
         const float ExtraCooling = 0.05f;   // 물통 위 김을 맞아 공기보다 조금 빨리 식는다
 
         Vector3 _above, _under;

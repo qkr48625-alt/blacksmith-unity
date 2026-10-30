@@ -72,7 +72,7 @@ namespace Blacksmith.Activities
                 return;
             }
             if (ActivityKit.Aim(_plane, out var p)) _aim = p;
-            var k = ActivityKit.Tremor(T, Jitter);
+            var k = ActivityKit.Tremor(T, Jitter * Mod("steady", 1f));
             var hit = _aim + new Vector3(k.x, 0f, k.y);
             _punch.position = hit;
             if (!Click.Down) return;

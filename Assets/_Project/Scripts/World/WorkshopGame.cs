@@ -4,6 +4,7 @@ using System.Linq;
 using Blacksmith.Activities;
 using Blacksmith.Core;
 using Blacksmith.Crafting;
+using Blacksmith.Economy;
 using Blacksmith.Feedback;
 using Blacksmith.Minigames;
 using Blacksmith.Pieces;
@@ -18,9 +19,9 @@ using UnityEngine.UIElements;
 namespace Blacksmith.World
 {
     // 3D 대장간의 진행을 맡는다: 저장, 작업 지시서(선행 관계), 작업대 들어가고 나오기, 활동 시작 · 이어 하기 · 기록,
-    // 작업물(온도 · 과열 · 버리기), 완성 → 진열대.
+    // 작업물(온도 · 과열 · 버리기), 완성 → 진열대. 경영(하루 · 손님 · 의뢰 · 시장 · 업그레이드)은 WorkshopGame.Economy.cs.
     [RequireComponent(typeof(UIDocument))]
-    public class WorkshopGame : MonoBehaviour
+    public partial class WorkshopGame : MonoBehaviour
     {
         // 과열: 탄 시간 1초마다 점수 -4, 모두 6초를 넘으면 작업물을 버린다. 3초에서 한 번 더 경고.
         const float BurnPenaltyPerSecond = 4f;
@@ -102,6 +103,7 @@ namespace Blacksmith.World
                 SpawnPiece(st, Workpiece.RoomTemp, _save.run.burnTotal);
 
             BuildRack();
+            StartEconomy();
             RefreshOrder();
             if (!_save.hasRun) _hud.Toast("작업 지시서 게시판에서 만들 물건을 고르세요");
         }
@@ -135,6 +137,7 @@ namespace Blacksmith.World
 
             UpdatePrompt();
             UpdateBurn();
+            UpdateEconomy();
 
             // 접근성: T 로 쇠 온도 숫자 켜고 끄기
             if (kb != null && kb.tKey.wasPressedThisFrame && !_hud.OverlayOpen)
@@ -180,6 +183,7 @@ namespace Blacksmith.World
             {
                 case StationRole.Board: ShowBoard(); break;
                 case StationRole.Rack: ShowRack(); break;
+                case StationRole.Customer: ShowCustomer(s); break;
                 default: ShowStationOptions(); break;
             }
         }
@@ -226,7 +230,12 @@ namespace Blacksmith.World
             {
                 var part = p;
                 bool ok = !p.Part.needsWorkpiece || _piece != null;
-                options.Add((ok ? $"{p.Part.name} 시작" : $"{p.Part.name} — 작업물을 들고 오세요", () => StartActivity(part), ok));
+                int mins = EconomyRules.MinutesOf(p);
+                bool time = HasTimeFor(p);
+                string label = !ok ? $"{p.Part.name} — 작업물을 들고 오세요"
+                    : !time ? $"{p.Part.name} — 오늘은 시간이 모자랍니다({mins}분)"
+                    : $"{p.Part.name} 시작 ({mins}분)";
+                options.Add((label, () => StartActivity(part), ok && time));
             }
             if (_current is ForgeStation && _piece != null) options.Add(("쇠 달구기", StartReheat, true));
 
@@ -253,7 +262,7 @@ namespace Blacksmith.World
             {
                 act = ActivityRegistry.Create(p);
                 int seed = _save.run.seed ^ p.Id.GetHashCode();
-                act.Begin(new ActivityContext { Station = _current, Piece = _piece, Game = new MinigameContext(seed), Hud = _hud });
+                act.Begin(new ActivityContext { Station = _current, Piece = _piece, Game = new MinigameContext(seed, EconomyRules.ModsOf(_save.eco)), Hud = _hud });
                 _inProgress[p.Id] = act;
             }
             if (p.Part.needsWorkpiece) PlacePiece(_current.WorkPoint);
@@ -303,6 +312,14 @@ namespace Blacksmith.World
                 detail.Add(new DetailEntry("burn", "과열 시간(초)", burn.ToString("0.0")));
                 detail.Add(new DetailEntry("burnPenalty", "과열 감점", penalty.ToString()));
             }
+            // 재료 등급 보정
+            int withMat = EconomyRules.ApplyMaterial(_save.pick, p, score, out var why);
+            if (withMat != score)
+            {
+                detail.Add(new DetailEntry("material", "재료 보정", why));
+                score = withMat;
+            }
+            SpendTime(EconomyRules.MinutesOf(p));
             var before = CraftPlan.Available(Recipe, _save.run).Select(x => x.Id).ToHashSet();
             CraftPlan.Record(_save.run, p, new PartRecord { key = p.Part.key, score = score, detail = detail });
 
@@ -437,6 +454,7 @@ namespace Blacksmith.World
                 tierKey = Scoring.TierOf(total).Key,
                 stages = run.stages,
                 finishedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm"),
+                day = _save.eco.day,
             };
             _save.collection.Add(record);
             if (_piece != null) Destroy(_piece.gameObject);
@@ -449,63 +467,7 @@ namespace Blacksmith.World
             ShowResult(recipe, record, true, CloseOverlay);
         }
 
-        void ShowBoard()
-        {
-            var box = Ui.Box("overlay-card");
-            box.Add(Ui.Label("작업 지시서 게시판", "h1"));
-            var recipe = Recipe;
-            if (recipe != null)
-            {
-                box.Add(Ui.Label($"만드는 중: {recipe.displayName} · {CraftPlan.DoneCount(recipe, _save.run)}/{CraftPlan.PartCount(recipe)} 단계", "amber"));
-                box.Add(Ui.Button("만들던 것 버리고 새로 고르기", () =>
-                {
-                    if (_piece != null) Destroy(_piece.gameObject);
-                    _piece = null;
-                    ResetRun();
-                    Persist();
-                    ShowBoard();
-                    RefreshOrder();
-                }));
-            }
-            else
-            {
-                box.Add(Ui.Label("만들 물건을 고르세요.", "muted"));
-                foreach (var r in recipes.Where(r => r != null))
-                {
-                    var card = Ui.Box("panel", "card");
-                    card.Add(Ui.Label(r.displayName, "h2"));
-                    card.Add(Ui.Label(r.description, "muted"));
-                    var pick = r;
-                    card.Add(Ui.Button("만들기", () => StartRun(pick), "btn-primary"));
-                    box.Add(card);
-                }
-            }
-            if (_save.ruined > 0) box.Add(Ui.Label($"타서 버린 작업물: {_save.ruined}개", "small", "muted"));
-            box.Add(Ui.Button("닫기 (Esc)", CloseOverlay));
-            _hud.ShowOverlay(box);
-        }
-
-        void ShowRack()
-        {
-            var box = Ui.Box("overlay-card");
-            box.Add(Ui.Label($"진열대 ({_save.collection.Count})", "h1"));
-            if (_save.collection.Count == 0) box.Add(Ui.Label("아직 완성한 물건이 없습니다.", "muted"));
-            var scroll = new ScrollView(ScrollViewMode.Vertical);
-            scroll.AddToClassList("overlay-scroll");
-            foreach (var rec in Enumerable.Reverse(_save.collection))
-            {
-                var row = Ui.Row("panel", "record");
-                row.Add(Ui.Label(Scoring.TierByKey(rec.tierKey).Name ?? rec.tierKey, "record__tier", "amber"));
-                row.Add(Ui.Label($"{rec.total}점", "record__total"));
-                row.Add(Ui.Label($"{rec.recipeName} · {rec.finishedAt}", "muted", "grow"));
-                var r = rec;
-                row.Add(Ui.Button("보기", () => ShowResult(recipes.Find(x => x != null && x.key == r.recipeKey), r, false, ShowRack)));
-                scroll.Add(row);
-            }
-            box.Add(scroll);
-            box.Add(Ui.Button("닫기 (Esc)", CloseOverlay));
-            _hud.ShowOverlay(box);
-        }
+        // 게시판 · 진열대 창은 WorkshopGame.Economy.cs (의뢰 · 시장 · 업그레이드 · 판매)
 
         void ShowResult(RecipeDef recipe, CraftRecord record, bool fresh, Action onClose)
         {
@@ -532,6 +494,7 @@ namespace Blacksmith.World
                 if (board != null) targets.Add(board);
                 lines.Add(("▶ 만들 물건 고르기", "quest-now"));
                 lines.Add(($"{To(board != null ? board.DisplayName : "게시판")} 가서 E 또는 클릭", "quest-sub"));
+                EconomyQuest(lines, targets);
                 _hud.SetWorkOrder("만들 물건 없음", "게시판에서 고르세요", lines);
                 _markers.Show(targets);
                 _targets = targets;
@@ -571,6 +534,7 @@ namespace Blacksmith.World
                 else lines.Add(($"· {st.process.title}", "quest-locked"));
             }
 
+            EconomyQuest(lines, targets);
             string piece = _piece != null ? PieceName(_piece.State) : "없음";
             _hud.SetWorkOrder(recipe.displayName,
                 $"{CraftPlan.DoneCount(recipe, _save.run)}/{CraftPlan.PartCount(recipe)} 단계 · 작업물: {piece}", lines);
@@ -612,6 +576,13 @@ namespace Blacksmith.World
             var cam = Camera.main;
             foreach (var s in _stations)
             {
+                if (s == null) continue;
+                // 손님은 움직이니 머리 위를 따라간다
+                if (s.Role == StationRole.Customer)
+                {
+                    _hud.WorldLabel(s, s.DisplayName, s.transform.position + Vector3.up * 2.05f, cam, show, _targets.Contains(s));
+                    continue;
+                }
                 if (!_tagAnchors.TryGetValue(s, out var at))
                 {
                     var b = s.VisualBounds();

@@ -241,7 +241,10 @@ Label {
     -unity-font-style: bold;
     white-space: nowrap;
 }
-.hud-temp { position: absolute; right: 16px; top: 16px; background-color: rgba(12, 10, 9, 0.9); font-size: 18px; -unity-font-style: bold; color: #fde68a; }
+.hud-status { position: absolute; right: 16px; top: 16px; background-color: rgba(12, 10, 9, 0.9); font-size: 18px; -unity-font-style: bold; color: #f5f5f4; }
+.shop-row > * { margin-right: 10px; }
+.btn-selected { background-color: var(--amber-deep); color: #1c1917; }
+.hud-temp { position: absolute; right: 16px; top: 74px; background-color: rgba(12, 10, 9, 0.9); font-size: 18px; -unity-font-style: bold; color: #fde68a; }
 .hud-tag--target { background-color: rgba(217, 119, 6, 0.92); color: #1c1917; }
 .hud-toasts { position: absolute; top: 16px; left: 340px; right: 340px; align-items: center; }
 .hud-toast { background-color: rgba(12, 10, 9, 0.85); border-color: var(--amber-deep); margin: 4px 0; padding: 8px 16px; }

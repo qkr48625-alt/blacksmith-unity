@@ -21,7 +21,8 @@ namespace Blacksmith.Activities
         const float FoldAnimSeconds = 0.6f;
 
         static float FillOf(int fold) => 1.2f - 0.08f * fold;
-        static float HalfOf(int fold) => 0.12f - 0.012f * fold;
+        float HalfOf(int fold) => (0.12f - 0.012f * fold) * _hammer;
+        float _hammer = 1f;   // 좋은 망치 업그레이드: 힘 구간 배율
 
         AnvilStation _anvil;
         Workpiece _piece;
@@ -54,6 +55,7 @@ namespace Blacksmith.Activities
             _anvil = ctx.Station as AnvilStation;
             _piece = ctx.Piece;
             _rng = ctx.Game.Rng;
+            _hammer = ctx.Game.Mod("hammerHalf", 1f);
             _target = NewTarget();
             if (_anvil == null) Debug.LogError("[Fold] 모루가 아닌 작업대에서 시작했습니다.");
         }

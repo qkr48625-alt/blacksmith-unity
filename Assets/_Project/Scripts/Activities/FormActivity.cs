@@ -81,7 +81,7 @@ namespace Blacksmith.Activities
             float dt = Time.deltaTime;
             _t += dt;
             _anvil?.SetPower(0.85f);   // 내리친 뒤 다시 든다
-            float jitter = Jitter[Mathf.Min(Index / PerRound, Rounds - 1)];
+            float jitter = Jitter[Mathf.Min(Index / PerRound, Rounds - 1)] * Mod("steady", 1f);
             if (ActivityKit.Aim(_plane, out var p)) _aim = p;
             var k = ActivityKit.Tremor(T, jitter);
             var hit = _aim + new Vector3(k.x, 0f, k.y);

@@ -30,6 +30,10 @@ namespace Blacksmith.Activities
         public abstract string Hint { get; }
 
         protected float Rand => (float)Rng.NextDouble();
+        MinigameContext _game;
+
+        // 업그레이드 보정값(없으면 fallback)
+        protected float Mod(string key, float fallback) => _game != null ? _game.Mod(key, fallback) : fallback;
 
         public void Begin(ActivityContext ctx)
         {
@@ -37,6 +41,7 @@ namespace Blacksmith.Activities
             Piece = ctx.Piece;
             Hud = ctx.Hud;
             Rng = ctx.Game.Rng;
+            _game = ctx.Game;
             Props = new GameObject($"Activity {Part.Part.key}").transform;
             Props.SetParent(Station.transform, false);
             Build();

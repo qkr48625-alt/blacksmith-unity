@@ -14,7 +14,7 @@ namespace Blacksmith.Activities
     {
         const int Rivets = 5;
         const float FillSeconds = 1.1f;
-        const float Half = 0.1f;
+        float Half => 0.1f * Mod("hammerHalf", 1f);
 
         AnvilStation _anvil;
         Transform _head;

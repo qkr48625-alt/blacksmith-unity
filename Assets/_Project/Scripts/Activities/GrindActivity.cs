@@ -80,7 +80,7 @@ namespace Blacksmith.Activities
                 _grindT += dt;
                 if (ideal) _idealT += dt;
                 _progress = Mathf.Min(1f, _progress + 0.045f * Mathf.Min(_omega, Fast) * (ideal ? 1f : 0.6f) * dt);
-                _heat += (0.025f + 0.06f * _omega * _omega) * dt;
+                _heat += (0.025f + 0.06f * _omega * _omega) * Mod("grindHeat", 1f) * dt;
                 if (_heat >= 1f) _overT += dt;
                 _sparkT -= dt;
                 if (_sparkT <= 0f)

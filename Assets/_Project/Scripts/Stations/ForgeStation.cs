@@ -25,6 +25,8 @@ namespace Blacksmith.Stations
         // 풀무질이 아닐 때 금색 칸이 가리키는 자리(제련 · 접기에 알맞은 온도)
         public const float DefaultBandCenter = 1150f;
         float _bandCenter = DefaultBandCenter, _bandShown = DefaultBandCenter, _blinkT;
+        float _bandHalf = 50f, _bandHalfShown = 50f;   // 칸 반폭(℃). 씬의 칸 조각은 ±50℃ 로 놓여 있고, 넓히면 각도를 늘린다
+        (Transform t, float angle, float radius)[] _bandSegments;
         MaterialPropertyBlock _bandBlock;
         Renderer[] _bandRenderers;
 
@@ -44,8 +46,17 @@ namespace Blacksmith.Stations
         static float CoolOf(float temp) => 25f + 0.06f * (temp - TMin);
 
         // 금색 칸을 center 로 옮긴다(바늘처럼 부드럽게 돌아간다). 칸 폭은 다이얼에 고정(±50℃).
-        public void SetBand(float center, float half) => _bandCenter = center;
-        public void ResetBand() => _bandCenter = DefaultBandCenter;
+        public void SetBand(float center, float half)
+        {
+            _bandCenter = center;
+            _bandHalf = half;
+        }
+
+        public void ResetBand()
+        {
+            _bandCenter = DefaultBandCenter;
+            _bandHalf = 50f;
+        }
         // 곧 옮겨 간다고 알리는 깜빡임
         public void BlinkBand(float seconds) => _blinkT = seconds;
 
@@ -151,8 +162,30 @@ namespace Blacksmith.Stations
                 if (_blinkT > 0f) _blinkT -= Time.deltaTime;
                 bool visible = _blinkT <= 0f || Mathf.Repeat(_blinkT, 0.25f) > 0.1f;
                 if (bandPivot.gameObject.activeSelf != visible) bandPivot.gameObject.SetActive(visible);
+                // 칸 폭: 조각들의 각도를 반폭에 맞춰 벌린다
+                if (_bandSegments == null)
+                {
+                    var list = new System.Collections.Generic.List<(Transform, float, float)>();
+                    foreach (Transform c in bandPivot)
+                    {
+                        var p = c.localPosition;
+                        list.Add((c, Mathf.Atan2(-p.x, p.y), new Vector2(p.x, p.y).magnitude));
+                    }
+                    _bandSegments = list.ToArray();
+                }
+                if (!Mathf.Approximately(_bandHalfShown, _bandHalf))
+                {
+                    _bandHalfShown = Mathf.MoveTowards(_bandHalfShown, _bandHalf, 100f * Time.deltaTime);
+                    float k = _bandHalfShown / 50f;
+                    foreach (var (seg, a0, r) in _bandSegments)
+                    {
+                        float a = a0 * k;
+                        seg.localPosition = new Vector3(-Mathf.Sin(a) * r, Mathf.Cos(a) * r, seg.localPosition.z);
+                        seg.localRotation = Quaternion.Euler(0f, 0f, a * Mathf.Rad2Deg);
+                    }
+                }
                 // 바늘이 칸 안에 있으면 칸이 환하게 빛난다
-                bool inBand = Mathf.Abs(_fire - _bandShown) <= 50f;
+                bool inBand = Mathf.Abs(_fire - _bandShown) <= _bandHalfShown;
                 _bandBlock ??= new MaterialPropertyBlock();
                 _bandBlock.SetColor("_EmissionColor", new Color(1f, 0.7f, 0.15f) * (inBand ? 4f : 1.3f));
                 _bandRenderers ??= bandPivot.GetComponentsInChildren<Renderer>(true);
