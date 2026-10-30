@@ -141,6 +141,20 @@ namespace Blacksmith.UI
             l.style.top = p.y;
         }
 
+        Label _temp;
+
+        // 오른쪽 위 작은 온도 표시(접근성 설정이 켜졌을 때만)
+        public void SetTemp(string text)
+        {
+            if (_temp == null)
+            {
+                _temp = Ui.Label("", "panel", "hud-temp");
+                _temp.pickingMode = PickingMode.Ignore;
+                _root.Add(_temp);
+            }
+            SetText(_temp, text);
+        }
+
         public void SetPrompt(string text) => SetText(_prompt, text);
         public void SetHint(string text) => SetText(_hint, text);
 

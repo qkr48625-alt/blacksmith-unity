@@ -68,6 +68,15 @@ namespace Blacksmith.Feedback
         // 곧 무언가 바뀐다는 가벼운 "띵"(풀무질 금색 칸이 옮겨 가기 전)
         public void Cue(Vector3 pos) => Play(_clankBright, pos, 0.35f, 1.7f);
 
+        // 숫돌에 칼날이 갈림(계속 부른다). strength 0~1 = 불티 양
+        public void Grind(Vector3 pos, float strength)
+        {
+            Burst(_sparks, pos, Mathf.RoundToInt(Mathf.Lerp(0, 6, strength)));
+            if (_crackleCooldown > 0f || strength < 0.2f) return;
+            _crackleCooldown = 0.1f;
+            Play(_crackle, pos, 0.25f + 0.3f * strength, Random.Range(1.4f, 1.8f));
+        }
+
         // 쇠꼬챙이로 배출구를 찌름(둔한 소리 + 작은 불티)
         public void Poke(Vector3 pos)
         {

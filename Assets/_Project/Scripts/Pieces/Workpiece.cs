@@ -61,6 +61,16 @@ namespace Blacksmith.Pieces
         // 화덕 불 속에 넣는다. fireTemp 는 지금 불 온도를 돌려준다. null 이면 꺼낸다.
         public void SetFire(Func<float> fireTemp) => _fireTemp = fireTemp;
 
+        // 겉 색을 바꾼다(뜨임 산화막 등). null 이면 원래 쇠 색으로.
+        public void SetTint(Color? tint)
+        {
+            if (_mat == null) return;
+            if (_baseColor == null) _baseColor = _mat.GetColor("_BaseColor");
+            _mat.SetColor("_BaseColor", tint ?? _baseColor.Value);
+        }
+
+        Color? _baseColor;
+
         public float TakeBurnMark()
         {
             float v = BurnSinceMark;

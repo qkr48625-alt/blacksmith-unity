@@ -16,6 +16,8 @@ namespace Blacksmith.Core
         public List<CraftRecord> collection = new();
         // 과열로 버린 작업물 수
         public int ruined;
+        // 접근성: 쇠 온도를 숫자로도 보여 준다(색 구분이 어려운 사람용, T 키)
+        public bool showTemp;
     }
 
     // 저장 파일 하나(persistentDataPath 아래). 임시 파일에 쓴 뒤 바꿔 끼워 반쯤 쓰인 파일이 남지 않게 한다.

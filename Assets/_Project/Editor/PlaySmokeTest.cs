@@ -75,6 +75,7 @@ namespace Blacksmith.EditorTools
                 }
                 // 화덕 시점(풀무질 · 온도계)
                 CaptureFrom("CM Forge", "smoke-forge.png");
+                TryActivities();
                 // 창 없는 Unity 는 앱 포커스가 없어서, 포커스를 무시해야 가상 키보드 입력이 들어간다
                 InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
                 if (Keyboard.current == null) InputSystem.AddDevice<Keyboard>().MakeCurrent();
@@ -105,6 +106,60 @@ namespace Blacksmith.EditorTools
         {
             Report.AppendLine(s);
             Debug.Log($"[Smoke] {s}");
+        }
+
+        // 단검의 세부 단계마다 활동을 만들어 몇 프레임 돌려 보고(예외가 나는지), 활동 카메라 자리에서 찍는다
+        static void TryActivities()
+        {
+            var recipe = AssetDatabase.LoadAssetAtPath<Blacksmith.Crafting.RecipeDef>(ProjectSetup.DaggerPath);
+            var stations = Object.FindObjectsByType<Station>();
+            var mat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            foreach (var p in Blacksmith.Crafting.CraftPlan.AllParts(recipe))
+            {
+                string id = p.Id;
+                if (id is "smelt.bellows" or "fold.fold") continue;
+                var station = System.Array.Find(stations, s => s.Role == StationRole.Work && s.Kind == p.Part.station);
+                var pieceGo = new GameObject("Smoke Piece");
+                var piece = pieceGo.AddComponent<Blacksmith.Pieces.Workpiece>();
+                piece.Init(mat);
+                piece.SetState(id.StartsWith("handle") ? Blacksmith.Pieces.WorkpieceState.Ground : Blacksmith.Pieces.WorkpieceState.Blade);
+                piece.Temperature = 900f;
+                // 게임과 같이: 작업물이 필요 없는 일이면 작업대 옆에 내려 둔다
+                if (p.Part.needsWorkpiece) pieceGo.transform.SetParent(station.WorkPoint, false);
+                else
+                {
+                    pieceGo.transform.SetParent(station.transform, false);
+                    pieceGo.transform.localPosition = new Vector3(0f, 0.15f, 0f);
+                }
+                try
+                {
+                    var act = Blacksmith.Activities.ActivityRegistry.Create(p);
+                    act.Begin(new Blacksmith.Activities.ActivityContext { Station = station, Piece = piece, Game = new Blacksmith.Minigames.MinigameContext(7) });
+                    act.Enter();
+                    for (int i = 0; i < 5; i++) act.Tick(0.02f);
+                    var cams = Object.FindObjectsByType<Unity.Cinemachine.CinemachineCamera>();
+                    var cm = System.Array.Find(cams, c => c.Priority >= 30);
+                    Line($"activity {id}: {act.GetType().Name} ok, cam={(cm != null ? cm.name : "-")} hint={act.Hint.Length}자");
+                    if (cm != null) CaptureCam(cm, $"smoke-act-{id}.png");
+                    act.Exit();
+                }
+                catch (System.Exception e)
+                {
+                    Line($"activity {id}: 예외 {e.GetType().Name}: {e.Message}\n{e.StackTrace}");
+                }
+                Object.DestroyImmediate(pieceGo);
+            }
+        }
+
+        static void CaptureCam(Unity.Cinemachine.CinemachineCamera cm, string file)
+        {
+            var temp = new GameObject("Smoke Cam").AddComponent<Camera>();
+            temp.transform.SetPositionAndRotation(cm.transform.position, cm.transform.rotation);
+            temp.fieldOfView = cm.Lens.FieldOfView;
+            temp.nearClipPlane = 0.03f;
+            temp.GetUniversalAdditionalCameraData().renderPostProcessing = true;
+            Capture(file, temp);
+            Object.DestroyImmediate(temp.gameObject);
         }
 
         // 이름으로 찾은 Cinemachine 카메라 자리에서 찍는다(블렌드를 기다리지 않게 임시 카메라를 둔다)

@@ -136,6 +136,15 @@ namespace Blacksmith.World
             UpdatePrompt();
             UpdateBurn();
 
+            // 접근성: T 로 쇠 온도 숫자 켜고 끄기
+            if (kb != null && kb.tKey.wasPressedThisFrame && !_hud.OverlayOpen)
+            {
+                _save.showTemp = !_save.showTemp;
+                Persist();
+                _hud.Toast(_save.showTemp ? "쇠 온도 숫자 보기 켬 (T)" : "쇠 온도 숫자 보기 끔 (T)");
+            }
+            _hud.SetTemp(_save.showTemp && _piece != null ? $"쇠 {Mathf.RoundToInt(_piece.Temperature)}℃ · {HeatWord(_piece.Temperature)}" : null);
+
             _markers.Hidden = _current != null || _hud.OverlayOpen;
             UpdateTags();
             _questRefreshT -= dt;
@@ -248,6 +257,12 @@ namespace Blacksmith.World
                 _inProgress[p.Id] = act;
             }
             if (p.Part.needsWorkpiece) PlacePiece(_current.WorkPoint);
+            else if (_piece != null)
+            {
+                // 작업물이 필요 없는 일: 들고 있던 쇠가 가까운 카메라를 가리지 않게 작업대 옆에 내려 둔다
+                _piece.transform.SetParent(_current.transform, false);
+                _piece.transform.localPosition = new Vector3(0f, 0.15f, 0f);
+            }
             _activity = act;
             act.Enter();
             _hud.SetHint(act.Hint);
@@ -564,7 +579,7 @@ namespace Blacksmith.World
         }
 
         bool NeedsHeat(PartRef p) =>
-            p.Part.station == StationKind.Anvil && p.Part.needsWorkpiece && _piece != null && _piece.Temperature < Workpiece.WorkableTemp
+            ActivityRegistry.NeedsHotPiece(p) && _piece != null && _piece.Temperature < Workpiece.WorkableTemp
             && !_inProgress.ContainsKey(p.Id);
 
         Station StationOf(StationKind kind) => _stations.FirstOrDefault(s => s.Role == StationRole.Work && s.Kind == kind);
