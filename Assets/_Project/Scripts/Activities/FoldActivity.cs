@@ -11,29 +11,28 @@ using UnityEngine.InputSystem;
 
 namespace Blacksmith.Activities
 {
-    // 정련 ① 접기 단접 — "망치 세게 치기": 모루 옆 눈금 기둥의 흰 표시가 아래에서 위로 계속 올라가고, 맨 위를 넘으면
-    // 아래로 돌아가 다시 올라간다. 맨 위 금색 칸에서 클릭(또는 스페이스)하면 최대 힘으로 내리친다. 망치는 들린 채로 기다린다.
-    // 4번 치면 한 번 접힌다. 5번 접기. 접을수록 게이지가 빨라지고 금색 칸이 좁아진다.
+    // 정련 ① 접기 단접 — "망치 세게 치기": 스페이스(또는 마우스)를 누르고 있으면 게이지가 아래에서 위로 쭉 올라가고,
+    // 위로 갈수록 빨라진다. 떼면 그 높이의 힘으로 내리친다. 맨 위의 얇은 금색 선에서 떼면 최대 힘. 꼭대기를 넘으면 아래부터 다시.
+    // 망치도 게이지만큼 들린다. 4번 치면 한 번 접힌다. 5번 접기. 접을수록 빨라지고 금색 선이 얇아진다.
     // 쇠가 체리빛 아래로 식으면 맞아도 반만 먹는다 — 화덕에 다녀와야 한다.
     public sealed class FoldActivity : IStationActivity
     {
         const int Folds = 5;
         const int Blows = 4;
         const float FoldAnimSeconds = 0.6f;
-        const float StrikeSeconds = 0.35f;     // 내리친 뒤 망치를 다시 드는 동안 게이지가 멈춘다
-        const float Ready = 0.85f;             // 기다리는 동안 망치를 든 높이
+        const float StrikeSeconds = 0.3f;      // 내리친 뒤 잠깐 다음 타격을 받지 않는다
 
-        // 게이지가 바닥에서 꼭대기까지 오르는 시간(초): 1.3 → 0.9
-        static float PeriodOf(int fold) => 1.3f - 0.1f * fold;
-        // 금색 칸: 꼭대기에 붙어 있다(위 끝 = 게이지 맨 위). 반폭 0.07 → 0.046 (좋은 망치면 1.3배)
+        // 오르는 빠르기(높이/초): 바닥에서 느리게 시작해 위로 갈수록 빨라진다. 접을수록 전체가 빨라진다.
+        float SpeedAt(float pos) => (0.25f + 0.9f * pos * pos) * (1f + 0.1f * _fold);   // 꼭대기까지 약 2.3초, 꼭대기 근처 초당 1.15
+        // 금색 선: 꼭대기에 붙은 얇은 띠. 반폭 0.04 → 0.03 (전에는 0.07, 좋은 망치면 1.3배)
+        float HalfOf(int fold) => (0.04f - 0.0025f * fold) * _hammer;
         float TopCenter => 1f - HalfOf(_fold);
-        float HalfOf(int fold) => (0.07f - 0.006f * fold) * _hammer;
         float _hammer = 1f;
 
         AnvilStation _anvil;
         Workpiece _piece;
         float _sweep, _foldAnim, _wait;
-        bool _active, _wasHeld = true;
+        bool _active, _wasHeld = true, _charging;
         int _fold, _blow, _coldHits;
         readonly List<int> _scores = new();
 
@@ -49,7 +48,7 @@ namespace Blacksmith.Activities
             {
                 string cold = _piece != null && _piece.Temperature < Workpiece.WorkableTemp
                     ? " · 쇠가 식었습니다! 화덕에서 달궈 오세요" : "";
-                return $"게이지가 맨 위 금색 칸에 올 때 클릭(또는 스페이스)으로 최대 힘! · {_fold + 1}/{Folds}번째 접기 {_blow}/{Blows}{cold}";
+                return $"스페이스(또는 마우스)를 누르고 있으면 게이지가 오릅니다 · 맨 위 금색 선에서 떼면 최대 힘! · {_fold + 1}/{Folds}번째 접기 {_blow}/{Blows}{cold}";
             }
         }
 
@@ -66,8 +65,9 @@ namespace Blacksmith.Activities
             _active = true;
             _wasHeld = true;
             _sweep = 0f;
+            _charging = false;
             _anvil?.ShowTarget(TopCenter, HalfOf(_fold));
-            _anvil?.SetPower(Ready);
+            _anvil?.SetPower(0f);
             ApplyShape();
         }
 
@@ -97,15 +97,20 @@ namespace Blacksmith.Activities
             if (_wait > 0f)
             {
                 _wait -= dt;
-                if (_wait <= 0f) _anvil.SetPower(Ready);
                 return;
             }
 
-            // 톱니 게이지: 0 → 1 로 오르고 넘으면 0 부터 다시
-            _sweep = (_sweep + dt / PeriodOf(_fold)) % 1f;
-            _anvil.SetMeter(_sweep);
-            _anvil.SetPower(Ready);
-            if (pressed) Strike(_sweep);
+            if (pressed && !_charging)
+            {
+                _charging = true;
+                _sweep = 0f;
+            }
+            if (!_charging) return;
+            // 누르고 있는 동안 위로 갈수록 빨라지며 오르고, 꼭대기를 넘으면 아래부터 다시
+            _sweep += SpeedAt(_sweep) * dt;
+            if (_sweep > 1f) _sweep = 0f;
+            _anvil.SetPower(_sweep);
+            if (!held) Strike(_sweep);
         }
 
         void Strike(float pos)
@@ -119,10 +124,10 @@ namespace Blacksmith.Activities
             }
             _scores.Add(sc);
             // 게이지 높이만큼 세게 내리친다
+            _charging = false;
             _anvil.Strike(Mathf.Max(0.3f, pos));
             _wait = StrikeSeconds;
             _sweep = 0f;
-            _anvil.SetMeter(pos);
 
             var hitPos = _piece != null ? _piece.transform.position : _anvil.WorkPoint.position;
             FeedbackHub.Instance?.Hit(hitPos + Random.insideUnitSphere * 0.03f, cold ? Mathf.Min(sc, 20) : sc);
