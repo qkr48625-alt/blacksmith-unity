@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
+using Blacksmith.Activities;
 using Blacksmith.Crafting;
 using Blacksmith.Feedback;
 using Blacksmith.Stations;
@@ -123,6 +124,11 @@ namespace Blacksmith.EditorTools
             Lit("HotMetal", new Color(0.28f, 0.27f, 0.27f), 0.8f, 0.45f, Color.black);
             Lit("Gold", new Color(1f, 0.75f, 0.2f), 0f, 0.5f, new Color(1f, 0.7f, 0.15f) * 1.6f);
             Lit("Marker", Color.white, 0f, 0.5f, Color.white * 1.8f);
+            Lit("Soot", new Color(0.06f, 0.05f, 0.05f), 0f, 0.1f);
+            Lit("Copper", new Color(0.76f, 0.47f, 0.24f), 0.3f, 0.5f);
+            Lit("Silver", new Color(0.84f, 0.83f, 0.82f), 0.3f, 0.6f);
+            // 진한 주황(너무 밝으면 Bloom 에 노랗게 날아가 금색 눈금이 묻힌다)
+            Lit("Slag", new Color(0.35f, 0.08f, 0.02f), 0f, 0.7f, new Color(1f, 0.28f, 0.04f) * 1.1f);
             Spark();
         }
 
@@ -394,7 +400,75 @@ namespace Blacksmith.EditorTools
             Box("Needle", needle, needle.position + new Vector3(0f, 0.07f, 0f), new Vector3(0.012f, 0.14f, 0.008f), "Iron", collider: false);
 
             s.Bind(pivot, body, needle, light, coals.GetComponent<Renderer>(), embers, ore.gameObject);
+            BuildSlagPit(at, t);
             return s;
+        }
+
+        // 슬래그 배출: 화덕 앞면 왼쪽의 노 단면 창. 왼쪽에 배출구(아래로 바닥 홈), 오른쪽에 송풍관, 앞에 쇠꼬챙이.
+        // 판정 눈금 높이는 SlagActivity 의 수치(배출구 · 송풍관 · 금 · 은 · 동)를 그대로 쓴다.
+        static void BuildSlagPit(Vector3 at, Transform forge)
+        {
+            const float H = 0.72f, Y0 = 0.09f, W = 0.44f;
+            float face = at.z - 0.7f;
+            float cx = at.x - 0.35f;
+            float Y(float level) => Y0 + level * H;
+
+            var root = new GameObject("Slag Pit").transform;
+            root.SetParent(forge, false);
+            root.position = new Vector3(cx, 0f, face);
+
+            // 창 안쪽(그을음) · 쇠 테두리
+            Box("Window Back", root, new Vector3(cx, Y0 + H / 2f, face - 0.005f), new Vector3(W, H, 0.01f), "Soot", collider: false);
+            Box("Frame Top", root, new Vector3(cx, Y0 + H + 0.02f, face - 0.02f), new Vector3(W + 0.08f, 0.04f, 0.03f), "Iron", collider: false);
+            Box("Frame Bottom", root, new Vector3(cx, Y0 - 0.02f, face - 0.02f), new Vector3(W + 0.08f, 0.04f, 0.03f), "Iron", collider: false);
+            foreach (float side in new[] { -1f, 1f })
+                Box(side < 0 ? "Frame L" : "Frame R", root, new Vector3(cx + side * (W / 2f + 0.02f), Y0 + H / 2f, face - 0.02f), new Vector3(0.04f, H, 0.03f), "Iron", collider: false);
+
+            // 녹은 슬래그 기둥: 축이 바닥에 있어 y 크기 = 높이
+            var column = new GameObject("Slag Column").transform;
+            column.SetParent(root, false);
+            column.position = new Vector3(cx, Y0, face - 0.012f);
+            Box("Slag", column, new Vector3(cx, Y0 + H / 2f, face - 0.012f), new Vector3(W, H, 0.01f), "Slag", collider: false);
+            var surface = Box("Slag Surface", root, new Vector3(cx, Y0, face - 0.03f), new Vector3(W, 0.008f, 0.004f), "Marker", collider: false).transform;
+
+            // 판정 눈금: 가운데 금색 선은 창을 가로지르고, 은 · 동은 양옆 틀에 튀어나온 눈금
+            float c = Y(SlagActivity.Center);
+            Box("Gold Line", root, new Vector3(cx, c, face - 0.024f), new Vector3(W, 2f * SlagActivity.Zones[0].half * H, 0.004f), "Gold", collider: false);
+            foreach (float side in new[] { -1f, 1f })
+            {
+                float x = cx + side * (W / 2f + 0.02f);
+                Box("Bronze Mark", root, new Vector3(x, c, face - 0.035f), new Vector3(0.05f, 2f * SlagActivity.Zones[2].half * H, 0.03f), "Copper", collider: false);
+                Box("Silver Mark", root, new Vector3(x, c, face - 0.045f), new Vector3(0.06f, 2f * SlagActivity.Zones[1].half * H, 0.04f), "Silver", collider: false);
+                Box("Gold Mark", root, new Vector3(x, c, face - 0.055f), new Vector3(0.07f, 2f * SlagActivity.Zones[0].half * H, 0.05f), "Gold", collider: false);
+            }
+
+            // 배출구: 창 왼쪽, 앞으로 튀어나온 쇠 관
+            float sx = cx - W / 2f - 0.08f, sy = Y(SlagActivity.Hole);
+            Prim("Spout", PrimitiveType.Cylinder, root, new Vector3(sx, sy, face - 0.12f), new Vector3(0.09f, 0.12f, 0.09f), "Iron", Quaternion.Euler(90f, 0f, 0f), collider: false);
+            var tip = new GameObject("Spout Tip").transform;
+            tip.SetParent(root, false);
+            tip.position = new Vector3(sx, sy, face - 0.24f);
+
+            // 송풍관: 창 오른쪽, 풀무 쪽으로 뻗는다
+            Prim("Tuyere", PrimitiveType.Cylinder, root, new Vector3(cx + W / 2f + 0.19f, Y(SlagActivity.Tuyere), face - 0.05f), new Vector3(0.08f, 0.15f, 0.08f), "Iron", Quaternion.Euler(0f, 0f, 90f), collider: false);
+
+            // 쏟아지는 줄기 · 바닥 홈 · 고인 슬래그
+            const float troughTop = 0.09f;
+            var stream = Box("Slag Stream", root, new Vector3(sx, (sy + troughTop) / 2f, face - 0.26f), new Vector3(0.035f, sy - troughTop, 0.035f), "Slag", collider: false).transform;
+            Box("Trough", root, new Vector3(sx, 0.04f, face - 0.3f), new Vector3(0.3f, 0.08f, 0.26f), "Stone");
+            var puddle = Box("Slag Puddle", root, new Vector3(sx, 0.083f, face - 0.3f), new Vector3(0.24f, 0.01f, 0.2f), "Slag", collider: false).GetComponent<Renderer>();
+
+            // 쇠꼬챙이: 끝이 배출구 앞에 오도록 왼쪽 앞에서 비스듬히(창을 가리지 않게). 축의 +z 가 배출구 쪽.
+            var handleEnd = tip.position + new Vector3(-0.5f, 0.3f, -0.5f);
+            var dir = (tip.position - handleEnd).normalized;
+            var poker = new GameObject("Poker").transform;
+            poker.SetParent(root, false);
+            poker.SetPositionAndRotation(tip.position - dir * 0.1f, Quaternion.LookRotation(dir));
+            Prim("Rod", PrimitiveType.Cylinder, poker, poker.position - dir * 0.45f, new Vector3(0.025f, 0.45f, 0.025f), "Iron", poker.rotation * Quaternion.Euler(90f, 0f, 0f), collider: false);
+            Box("Grip", poker, poker.position - dir * 0.85f, new Vector3(0.04f, 0.04f, 0.12f), "Wood", collider: false).transform.rotation = poker.rotation;
+
+            var cam = StationCam("Forge Slag", new Vector3(cx + 0.15f, 0.95f, face - 1.35f), new Vector3(cx - 0.05f, 0.4f, face - 0.1f));
+            root.gameObject.AddComponent<SlagPit>().Bind(column, surface, poker, stream, puddle, tip, cam, H);
         }
 
         static ParticleSystem MakeEmbers(Transform parent, Vector3 at)

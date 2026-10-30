@@ -63,6 +63,26 @@ namespace Blacksmith.EditorTools
                 Line($"quest markers={(markers != null ? markers.transform.childCount : -1)} ({(markers != null && markers.transform.childCount > 0 ? markers.transform.GetChild(0).name : "")})");
                 Line($"keyboard={Keyboard.current != null} mouse={Mouse.current != null}");
                 Capture("smoke-start.png");
+                // 슬래그 단면 창: 차오른 상태 + 쏟아지는 줄기를 그 카메라 자리에서 찍는다
+                var pit = Object.FindAnyObjectByType<Blacksmith.Stations.SlagPit>();
+                Line($"slag pit={pit != null}");
+                if (pit != null)
+                {
+                    pit.SetLevel(0.62f);
+                    pit.SetPouring(true);
+                    var slagCam = System.Array.Find(Object.FindObjectsByType<Unity.Cinemachine.CinemachineCamera>(), c => c.name == "CM Forge Slag");
+                    if (slagCam != null)
+                    {
+                        var temp = new GameObject("Smoke Cam").AddComponent<Camera>();
+                        temp.transform.SetPositionAndRotation(slagCam.transform.position, slagCam.transform.rotation);
+                        temp.fieldOfView = slagCam.Lens.FieldOfView;
+                        temp.nearClipPlane = 0.05f;
+                        temp.GetUniversalAdditionalCameraData().renderPostProcessing = true;
+                        Capture("smoke-slag.png", temp);
+                        Object.DestroyImmediate(temp.gameObject);
+                    }
+                    pit.SetPouring(false);
+                }
                 // 창 없는 Unity 는 앱 포커스가 없어서, 포커스를 무시해야 가상 키보드 입력이 들어간다
                 InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
                 if (Keyboard.current == null) InputSystem.AddDevice<Keyboard>().MakeCurrent();
@@ -96,9 +116,9 @@ namespace Blacksmith.EditorTools
         }
 
         // 메인 카메라 화면을 PNG 로(HUD 는 화면 위 UI 라 빠진다)
-        static void Capture(string file)
+        static void Capture(string file, Camera cam = null)
         {
-            var cam = Camera.main;
+            if (cam == null) cam = Camera.main;
             if (cam == null || SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null)
             {
                 Line($"capture skipped ({file})");

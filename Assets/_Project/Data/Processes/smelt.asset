@@ -29,7 +29,7 @@ MonoBehaviour:
   - key: slag
     name: "\uC2AC\uB798\uADF8 \uBC30\uCD9C"
     weight: 0.3
-    minigame: 
+    minigame: slag
     station: 0
     requires:
     - smelt.bellows

@@ -10,6 +10,7 @@ namespace Blacksmith.Activities
         static readonly Dictionary<string, Func<PartRef, IStationActivity>> Factories = new()
         {
             ["bellows"] = p => new BellowsActivity(p),
+            ["slag"] = p => new SlagActivity(p),
             ["fold"] = p => new FoldActivity(p),
         };
 

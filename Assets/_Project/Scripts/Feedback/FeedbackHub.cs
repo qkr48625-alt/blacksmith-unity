@@ -65,6 +65,21 @@ namespace Blacksmith.Feedback
 
         public void Done(Vector3 pos) => Play(_chime, pos, 0.8f, 1f);
 
+        // 쇠꼬챙이로 배출구를 찌름(둔한 소리 + 작은 불티)
+        public void Poke(Vector3 pos)
+        {
+            Burst(_sparks, pos, 6);
+            Play(_thud, pos, 0.8f, Random.Range(1.1f, 1.25f));
+        }
+
+        // 녹은 슬래그가 쏟아짐(지글거림 + 불티)
+        public void Pour(Vector3 pos)
+        {
+            Burst(_sparks, pos, 30);
+            Play(_crackle, pos, 0.8f, 0.7f);
+            Play(_sizzle, pos, 0.35f, 0.6f);
+        }
+
         static void Burst(ParticleSystem ps, Vector3 pos, int count)
         {
             ps.transform.position = pos;
