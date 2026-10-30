@@ -221,6 +221,12 @@ Label {
 }
 .hud-order__list { margin-top: 6px; }
 .hud-order__line { color: #d6d3d1; }
+.quest-head { color: var(--muted); font-size: 13px; margin-top: 8px; }
+.quest-now { color: var(--amber); -unity-font-style: bold; margin-top: 4px; }
+.quest-sub { color: #d6d3d1; font-size: 13px; padding-left: 18px; }
+.quest-done { color: #7c8f6a; }
+.quest-current { color: #e7e5e4; }
+.quest-locked { color: #57534e; }
 .hud-toasts { position: absolute; top: 16px; left: 340px; right: 340px; align-items: center; }
 .hud-toast { background-color: rgba(12, 10, 9, 0.85); border-color: var(--amber-deep); margin: 4px 0; padding: 8px 16px; }
 .hud-warning {

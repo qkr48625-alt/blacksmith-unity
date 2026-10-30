@@ -26,7 +26,7 @@ namespace Blacksmith.UI
             _orderTitle = Ui.Label("", "h2");
             _orderProgress = Ui.Label("", "small", "muted");
             _orderList = Ui.Box("hud-order__list");
-            order.Add(Ui.Label("작업 지시서", "small", "amber"));
+            order.Add(Ui.Label("퀘스트", "small", "amber"));
             order.Add(_orderTitle);
             order.Add(_orderProgress);
             order.Add(_orderList);
@@ -108,13 +108,14 @@ namespace Blacksmith.UI
             return false;
         }
 
-        public void SetWorkOrder(string title, string progress, IEnumerable<(string text, bool highlight)> lines)
+        // 퀘스트 줄마다 모양(USS 클래스: quest-head · quest-now · quest-sub · quest-done · quest-current · quest-locked)을 준다
+        public void SetWorkOrder(string title, string progress, IEnumerable<(string text, string style)> lines)
         {
             _orderTitle.text = title;
             _orderProgress.text = progress;
             _orderList.Clear();
-            foreach (var (text, highlight) in lines)
-                _orderList.Add(Ui.Label(text, "small", highlight ? "amber" : "hud-order__line"));
+            foreach (var (text, style) in lines)
+                _orderList.Add(Ui.Label(text, "small", style));
         }
 
         public void SetPrompt(string text) => SetText(_prompt, text);

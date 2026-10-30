@@ -48,6 +48,8 @@ namespace Blacksmith.World
         Workpiece _piece;
         ForgeStation _reheatForge;
         bool _burnWarnedFirst, _burnWarnedLast;
+        QuestMarkers _markers;
+        float _questRefreshT;   // 쇠 온도에 따라 퀘스트 안내가 바뀌어서 가끔 다시 그린다
 
         RecipeDef Recipe => _save.hasRun ? recipes.Find(r => r != null && r.key == _save.run.recipeKey) : null;
 
@@ -90,6 +92,9 @@ namespace Blacksmith.World
             player.Init(_stations);
             player.InteractRequested += EnterStation;
 
+            _markers = new GameObject("Quest Markers").AddComponent<QuestMarkers>();
+            _markers.Init(metalMaterial);
+
             if (_save.hasRun && Recipe == null) ResetRun();
             if (_save.hasRun && Enum.TryParse(_save.run.workpieceState, out WorkpieceState st) && st != WorkpieceState.None)
                 SpawnPiece(st, Workpiece.RoomTemp, _save.run.burnTotal);
@@ -128,6 +133,14 @@ namespace Blacksmith.World
 
             UpdatePrompt();
             UpdateBurn();
+
+            _markers.Hidden = _current != null || _hud.OverlayOpen;
+            _questRefreshT -= dt;
+            if (_questRefreshT <= 0f)
+            {
+                _questRefreshT = 0.5f;
+                RefreshOrder();
+            }
         }
 
         void OnApplicationQuit()
@@ -270,6 +283,7 @@ namespace Blacksmith.World
                 detail.Add(new DetailEntry("burn", "과열 시간(초)", burn.ToString("0.0")));
                 detail.Add(new DetailEntry("burnPenalty", "과열 감점", penalty.ToString()));
             }
+            var before = CraftPlan.Available(Recipe, _save.run).Select(x => x.Id).ToHashSet();
             CraftPlan.Record(_save.run, p, new PartRecord { key = p.Part.key, score = score, detail = detail });
 
             if (Enum.TryParse(p.Part.producesState, out WorkpieceState next) && next != WorkpieceState.None)
@@ -290,6 +304,8 @@ namespace Blacksmith.World
                 FinishRun();
                 return;
             }
+            var unlocked = CraftPlan.Available(Recipe, _save.run).Where(x => !before.Contains(x.Id)).Select(x => x.Part.name).ToList();
+            if (unlocked.Count > 0) _hud.Toast($"새 퀘스트: {string.Join(" · ", unlocked)}");
             RefreshOrder();
             if (_current != null) ShowStationOptions();
         }
@@ -384,7 +400,7 @@ namespace Blacksmith.World
             Persist();
             CloseOverlay();
             RefreshOrder();
-            _hud.Toast($"{recipe.displayName} 제작 시작 — 지시서에서 할 수 있는 일을 확인하세요");
+            _hud.Toast($"{recipe.displayName} 제작 시작 — 금빛 화살표가 가리키는 곳으로 가세요");
         }
 
         void FinishRun()
@@ -484,23 +500,76 @@ namespace Blacksmith.World
             if (_current != null && _current.Role != StationRole.Work) ExitStation();
         }
 
+        // 퀘스트 창: 지금 할 일(어디로 가서 무엇을) + 공정별 진행. 가야 할 작업대에는 화살표 · 빛을 띄운다.
         void RefreshOrder()
         {
             var recipe = Recipe;
+            var targets = new HashSet<Station>();
+            var lines = new List<(string, string)>();
             if (recipe == null)
             {
-                _hud.SetWorkOrder("만들 물건 없음", "게시판에서 고르세요", Array.Empty<(string, bool)>());
+                var board = _stations.FirstOrDefault(s => s.Role == StationRole.Board);
+                if (board != null) targets.Add(board);
+                lines.Add(("▶ 만들 물건 고르기", "quest-now"));
+                lines.Add(($"{To(board != null ? board.DisplayName : "게시판")} 가서 E 또는 클릭", "quest-sub"));
+                _hud.SetWorkOrder("만들 물건 없음", "게시판에서 고르세요", lines);
+                _markers.Show(targets);
                 return;
             }
-            var lines = new List<(string, bool)>();
-            foreach (var p in CraftPlan.Available(recipe, _save.run))
+
+            var available = CraftPlan.Available(recipe, _save.run);
+            lines.Add(("지금 할 일", "quest-head"));
+            foreach (var p in available)
             {
+                var station = StationOf(p.Part.station);
                 bool doing = _inProgress.ContainsKey(p.Id);
-                lines.Add(($"• {p.Part.name} — {Station.KindName(p.Part.station)}{(doing ? " (하던 중)" : "")}", doing));
+                lines.Add(($"▶ {p.Part.name}{(doing ? " (하던 중)" : "")}", "quest-now"));
+                // 식은 쇠로 모루 일을 하면 점수가 깎이니, 화덕부터 들르게 한다
+                if (NeedsHeat(p) && _current != station)
+                {
+                    var forge = StationOf(StationKind.Forge);
+                    if (forge != null) targets.Add(forge);
+                    lines.Add((_current is ForgeStation
+                        ? $"달구는 중 · 쇠: {HeatWord(_piece.Temperature)} — 체리빛이 넘으면 {To(Station.KindName(p.Part.station))}"
+                        : $"쇠가 식었어요 — {To(forge != null ? forge.DisplayName : "화덕")} 가서 달군 뒤 {Station.KindName(p.Part.station)}에서", "quest-sub"));
+                    continue;
+                }
+                if (station != null) targets.Add(station);
+                string where = station != null ? station.DisplayName : Station.KindName(p.Part.station);
+                lines.Add((_current != null && _current == station ? "여기서 하는 중" : $"{To(where)} 가서 E 또는 클릭", "quest-sub"));
             }
+
+            lines.Add(("진행", "quest-head"));
+            foreach (var st in recipe.stages)
+            {
+                int total = st.process.parts.Count;
+                int done = st.process.parts.Count(x => _save.run.IsDone(st.process.key, x.key));
+                bool open = available.Any(a => a.Process == st.process);
+                if (done == total) lines.Add(($"√ {st.process.title}", "quest-done"));
+                else if (done > 0 || open) lines.Add(($"● {st.process.title}  {done}/{total}", "quest-current"));
+                else lines.Add(($"· {st.process.title}", "quest-locked"));
+            }
+
             string piece = _piece != null ? PieceName(_piece.State) : "없음";
             _hud.SetWorkOrder(recipe.displayName,
                 $"{CraftPlan.DoneCount(recipe, _save.run)}/{CraftPlan.PartCount(recipe)} 단계 · 작업물: {piece}", lines);
+            _markers.Show(targets);
+        }
+
+        bool NeedsHeat(PartRef p) =>
+            p.Part.station == StationKind.Anvil && p.Part.needsWorkpiece && _piece != null && _piece.Temperature < Workpiece.WorkableTemp
+            && !_inProgress.ContainsKey(p.Id);
+
+        Station StationOf(StationKind kind) => _stations.FirstOrDefault(s => s.Role == StationRole.Work && s.Kind == kind);
+
+        // "화덕으로" · "모루로" — 받침이 있으면(ㄹ 빼고) "으로"
+        static string To(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return name;
+            char c = name[^1];
+            if (c < 0xAC00 || c > 0xD7A3) return name + "(으)로";
+            int jong = (c - 0xAC00) % 28;
+            return name + (jong == 0 || jong == 8 ? "로" : "으로");
         }
 
         static string PieceName(WorkpieceState s) => s switch
