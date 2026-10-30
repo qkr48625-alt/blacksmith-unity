@@ -138,6 +138,7 @@ namespace Blacksmith.World
             UpdatePrompt();
             UpdateBurn();
             UpdateEconomy();
+            UpdateDebugKeys(kb);
 
             // 접근성: T 로 쇠 온도 숫자 켜고 끄기
             if (kb != null && kb.tKey.wasPressedThisFrame && !_hud.OverlayOpen)
