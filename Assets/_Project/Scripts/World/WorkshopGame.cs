@@ -106,6 +106,7 @@ namespace Blacksmith.World
             StartEconomy();
             RefreshOrder();
             if (!_save.hasRun) _hud.Toast("작업 지시서 게시판에서 만들 물건을 고르세요");
+            AutoStartForTest();
         }
 
         void Update()

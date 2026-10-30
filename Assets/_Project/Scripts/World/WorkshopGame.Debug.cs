@@ -13,6 +13,50 @@ namespace Blacksmith.World
     public partial class WorkshopGame
     {
 #if UNITY_EDITOR
+        // 점검용 자동 시작(Editor/AutoPlayLauncher): Temp/blacksmith-autoplay.txt 의 세부 단계까지 앞 단계를 80점으로 건너뛰고,
+        // 쇠를 달군 채 그 작업대에 붙어 활동을 바로 시작한다. 파일은 읽고 지운다.
+        void AutoStartForTest()
+        {
+            const string file = "Temp/blacksmith-autoplay.txt";
+            if (!System.IO.File.Exists(file)) return;
+            string target = System.IO.File.ReadAllText(file).Trim();
+            System.IO.File.Delete(file);
+            var recipe = recipes.FirstOrDefault(r => r != null);
+            if (recipe == null) return;
+            if (Recipe == null)
+            {
+                _draftPick = BestPick();
+                StartRunWithMaterials(recipe);
+            }
+            // 목표 단계가 할 수 있게 될 때까지 앞 단계를 건너뛴다(이미 지났으면 새로 시작)
+            if (CraftPlan.IsDone(_save.run, target))
+            {
+                ResetRun();
+                _draftPick = new MaterialPick();
+                StartRun(recipe);
+            }
+            for (int guard = 0; guard < 30; guard++)
+            {
+                var avail = CraftPlan.Available(Recipe, _save.run);
+                if (avail.Any(p => p.Id == target)) break;
+                var next = avail.FirstOrDefault();
+                if (next.Part == null) return;
+                CompletePart(new SkippedActivity(next));
+            }
+            var part = CraftPlan.Available(Recipe, _save.run).FirstOrDefault(p => p.Id == target);
+            if (part.Part == null) return;
+            var station = StationOf(part.Part.station);
+            if (station == null) return;
+            if (_piece != null) _piece.Temperature = 1050f;
+            Eco.minutes = EconomyRules.DayStart;
+            _hud.HideOverlay();
+            var agent = player.GetComponent<UnityEngine.AI.NavMeshAgent>();
+            agent.Warp(station.Approach.position);
+            EnterStation(station);
+            if (_activity == null) StartActivity(part);
+            _hud.Toast($"[점검] {part.Part.name}에서 시작합니다");
+        }
+
         void UpdateDebugKeys(Keyboard kb)
         {
             if (kb == null || _hud.OverlayOpen) return;
@@ -77,6 +121,7 @@ namespace Blacksmith.World
             public MinigameResult Result { get; } = new MinigameResult { Score = 80 }.Add("skipped", "점검용 건너뛰기", "예");
         }
 #else
+        void AutoStartForTest() { }
         void UpdateDebugKeys(Keyboard kb) { }
 #endif
     }
