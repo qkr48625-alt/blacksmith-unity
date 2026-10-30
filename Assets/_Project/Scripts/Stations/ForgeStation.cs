@@ -25,6 +25,8 @@ namespace Blacksmith.Stations
         // 풀무질이 아닐 때 금색 칸이 가리키는 자리(제련 · 접기에 알맞은 온도)
         public const float DefaultBandCenter = 1150f;
         float _bandCenter = DefaultBandCenter, _bandShown = DefaultBandCenter, _blinkT;
+        MaterialPropertyBlock _bandBlock;
+        Renderer[] _bandRenderers;
 
         float _fire = 900f;
         float _handle;      // 0 = 올라감, 1 = 끝까지 내림
@@ -149,6 +151,12 @@ namespace Blacksmith.Stations
                 if (_blinkT > 0f) _blinkT -= Time.deltaTime;
                 bool visible = _blinkT <= 0f || Mathf.Repeat(_blinkT, 0.25f) > 0.1f;
                 if (bandPivot.gameObject.activeSelf != visible) bandPivot.gameObject.SetActive(visible);
+                // 바늘이 칸 안에 있으면 칸이 환하게 빛난다
+                bool inBand = Mathf.Abs(_fire - _bandShown) <= 50f;
+                _bandBlock ??= new MaterialPropertyBlock();
+                _bandBlock.SetColor("_EmissionColor", new Color(1f, 0.7f, 0.15f) * (inBand ? 4f : 1.3f));
+                _bandRenderers ??= bandPivot.GetComponentsInChildren<Renderer>(true);
+                foreach (var r in _bandRenderers) r.SetPropertyBlock(_bandBlock);
             }
 
             float flicker = 1f + 0.12f * Mathf.PerlinNoise(_t * 7f, 0.3f) - 0.06f + (Pumping ? 0.15f : 0f);

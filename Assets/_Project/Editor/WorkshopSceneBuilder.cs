@@ -349,7 +349,8 @@ namespace Blacksmith.EditorTools
 
         static ForgeStation BuildForge(Vector3 at, GameObject room)
         {
-            var cam = StationCam("Forge", at + new Vector3(0.9f, 2.1f, -2.4f), at + new Vector3(0.5f, 0.8f, 0f));
+            // 숯불 · 풀무 · 앞면 온도계가 함께 보이게 조금 낮게
+            var cam = StationCam("Forge", at + new Vector3(1.0f, 1.75f, -2.35f), at + new Vector3(0.55f, 0.65f, -0.3f));
             var s = (ForgeStation)Make<ForgeStation>("화덕", at, room, StationRole.Work, StationKind.Forge,
                 at + new Vector3(0.6f, 0f, -1.4f), at + new Vector3(0f, 1.02f, -0.1f), cam);
             var t = s.transform;
@@ -383,25 +384,37 @@ namespace Blacksmith.EditorTools
             Box("Grip", handle.transform.parent, pivot.position + new Vector3(0.7f, 0f, 0f), new Vector3(0.06f, 0.06f, 0.25f), "Wood", collider: false);
 
             // 놋쇠 다이얼 온도계: 화덕 앞면. 금색 칸(폭 100℃)은 회전축에 달려 있어 풀무질 중에 옮겨 간다.
+            // 어두운 판 + 회색 눈금 호 위에 빛나는 금색 칸과 흰 바늘(밝은 판에 금색은 묻혀서 안 보인다)
+            const float R = 0.2f;
             var dial = new GameObject("Dial").transform;
             dial.SetParent(t, false);
-            dial.position = at + new Vector3(0.55f, 0.55f, -0.72f);
-            Prim("Face", PrimitiveType.Cylinder, dial, dial.position, new Vector3(0.36f, 0.01f, 0.36f), "Paper", Quaternion.Euler(90f, 0f, 0f), collider: false);
-            Prim("Rim", PrimitiveType.Cylinder, dial, dial.position + new Vector3(0f, 0f, 0.01f), new Vector3(0.4f, 0.01f, 0.4f), "Brass", Quaternion.Euler(90f, 0f, 0f), collider: false);
+            dial.position = at + new Vector3(0.5f, 0.5f, -0.72f);
+            Prim("Face", PrimitiveType.Cylinder, dial, dial.position, new Vector3(0.56f, 0.01f, 0.56f), "Soot", Quaternion.Euler(90f, 0f, 0f), collider: false);
+            Prim("Rim", PrimitiveType.Cylinder, dial, dial.position + new Vector3(0f, 0f, 0.01f), new Vector3(0.62f, 0.01f, 0.62f), "Brass", Quaternion.Euler(90f, 0f, 0f), collider: false);
+            const float degPerC = 240f / (ForgeStation.TMax - ForgeStation.TMin);
+            float AngleOf(float temp) => Mathf.Lerp(120f, -120f, Mathf.InverseLerp(ForgeStation.TMin, ForgeStation.TMax, temp)) * Mathf.Deg2Rad;
+            Vector3 OnArc(Vector3 c, float a, float r) => c + new Vector3(-Mathf.Sin(a), Mathf.Cos(a), 0f) * r;
+            // 눈금 호: 50℃ 마다 짧은 눈금, 500℃ 마다 긴 눈금
+            for (float temp = ForgeStation.TMin; temp <= ForgeStation.TMax + 1f; temp += 50f)
+            {
+                bool major = Mathf.Approximately(temp % 500f, 0f);
+                float a = AngleOf(temp);
+                Prim("Tick", PrimitiveType.Cube, dial, OnArc(dial.position, a, R + (major ? 0.035f : 0.045f)) + new Vector3(0f, 0f, -0.008f),
+                    new Vector3(0.01f, major ? 0.05f : 0.03f, 0.006f), "Silver", Quaternion.Euler(0f, 0f, a * Mathf.Rad2Deg), collider: false);
+            }
             var band = new GameObject("Band Pivot").transform;
             band.SetParent(dial, false);
             band.position = dial.position + new Vector3(0f, 0f, -0.012f);
-            const float degPerC = 240f / (ForgeStation.TMax - ForgeStation.TMin);
-            for (float off = -50f; off <= 50f; off += 20f)
+            for (float off = -50f; off <= 50f; off += 10f)
             {
                 float a = -off * degPerC * Mathf.Deg2Rad;   // 온도가 높을수록 시계 방향
-                var p = band.position + new Vector3(-Mathf.Sin(a), Mathf.Cos(a), 0f) * 0.14f;
-                Prim("Band", PrimitiveType.Cube, band, p, new Vector3(0.035f, 0.035f, 0.01f), "Gold", Quaternion.Euler(0f, 0f, a * Mathf.Rad2Deg), collider: false);
+                Prim("Band", PrimitiveType.Cube, band, OnArc(band.position, a, R), new Vector3(0.026f, 0.07f, 0.01f), "Gold", Quaternion.Euler(0f, 0f, a * Mathf.Rad2Deg), collider: false);
             }
             var needle = new GameObject("Needle Pivot").transform;
             needle.SetParent(dial, false);
-            needle.position = dial.position + new Vector3(0f, 0f, -0.02f);
-            Box("Needle", needle, needle.position + new Vector3(0f, 0.07f, 0f), new Vector3(0.012f, 0.14f, 0.008f), "Iron", collider: false);
+            needle.position = dial.position + new Vector3(0f, 0f, -0.022f);
+            Box("Needle", needle, needle.position + new Vector3(0f, 0.11f, 0f), new Vector3(0.022f, 0.22f, 0.008f), "Marker", collider: false);
+            Prim("Hub", PrimitiveType.Cylinder, needle, needle.position + new Vector3(0f, 0f, -0.004f), new Vector3(0.05f, 0.006f, 0.05f), "Brass", Quaternion.Euler(90f, 0f, 0f), collider: false);
 
             s.Bind(pivot, body, needle, light, coals.GetComponent<Renderer>(), embers, ore.gameObject, band);
             BuildSlagPit(at, t);

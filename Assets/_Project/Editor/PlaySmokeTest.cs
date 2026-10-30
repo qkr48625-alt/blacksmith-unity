@@ -70,19 +70,11 @@ namespace Blacksmith.EditorTools
                 {
                     pit.SetLevel(0.62f);
                     pit.SetPouring(true);
-                    var slagCam = System.Array.Find(Object.FindObjectsByType<Unity.Cinemachine.CinemachineCamera>(), c => c.name == "CM Forge Slag");
-                    if (slagCam != null)
-                    {
-                        var temp = new GameObject("Smoke Cam").AddComponent<Camera>();
-                        temp.transform.SetPositionAndRotation(slagCam.transform.position, slagCam.transform.rotation);
-                        temp.fieldOfView = slagCam.Lens.FieldOfView;
-                        temp.nearClipPlane = 0.05f;
-                        temp.GetUniversalAdditionalCameraData().renderPostProcessing = true;
-                        Capture("smoke-slag.png", temp);
-                        Object.DestroyImmediate(temp.gameObject);
-                    }
+                    CaptureFrom("CM Forge Slag", "smoke-slag.png");
                     pit.SetPouring(false);
                 }
+                // 화덕 시점(풀무질 · 온도계)
+                CaptureFrom("CM Forge", "smoke-forge.png");
                 // 창 없는 Unity 는 앱 포커스가 없어서, 포커스를 무시해야 가상 키보드 입력이 들어간다
                 InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
                 if (Keyboard.current == null) InputSystem.AddDevice<Keyboard>().MakeCurrent();
@@ -113,6 +105,24 @@ namespace Blacksmith.EditorTools
         {
             Report.AppendLine(s);
             Debug.Log($"[Smoke] {s}");
+        }
+
+        // 이름으로 찾은 Cinemachine 카메라 자리에서 찍는다(블렌드를 기다리지 않게 임시 카메라를 둔다)
+        static void CaptureFrom(string cmName, string file)
+        {
+            var cm = System.Array.Find(Object.FindObjectsByType<Unity.Cinemachine.CinemachineCamera>(), c => c.name == cmName);
+            if (cm == null)
+            {
+                Line($"capture skipped ({file}: {cmName} 없음)");
+                return;
+            }
+            var temp = new GameObject("Smoke Cam").AddComponent<Camera>();
+            temp.transform.SetPositionAndRotation(cm.transform.position, cm.transform.rotation);
+            temp.fieldOfView = cm.Lens.FieldOfView;
+            temp.nearClipPlane = 0.05f;
+            temp.GetUniversalAdditionalCameraData().renderPostProcessing = true;
+            Capture(file, temp);
+            Object.DestroyImmediate(temp.gameObject);
         }
 
         // 메인 카메라 화면을 PNG 로(HUD 는 화면 위 UI 라 빠진다)
