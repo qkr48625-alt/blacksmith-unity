@@ -25,8 +25,8 @@ namespace Blacksmith.Pieces
         // 망치질이 제대로 먹는 가장 낮은 온도(체리빛). 아래에서 치면 점수가 깎인다.
         public const float WorkableTemp = 750f;
 
-        // 공기 중 냉각(뉴턴 냉각). 1,150℃ → 750℃ 까지 약 12초.
-        const float AirCooling = 0.036f;
+        // 공기 중 냉각(뉴턴 냉각). 1,150℃ → 750℃ 까지 약 36초(접기 한 판을 거의 한 번 달궈서 버틸 만큼).
+        const float AirCooling = 0.012f;
         // 불 속에서 불 온도로 다가가는 빠르기. 불이 1,250℃면 실온에서 체리빛까지 약 2초.
         const float FireHeating = 0.45f;
 
