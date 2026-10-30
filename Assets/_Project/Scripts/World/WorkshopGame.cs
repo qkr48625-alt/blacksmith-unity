@@ -139,6 +139,7 @@ namespace Blacksmith.World
             UpdateBurn();
             UpdateEconomy();
             UpdateDebugKeys(kb);
+            UpdateTip();
 
             // 접근성: T 로 쇠 온도 숫자 켜고 끄기
             if (kb != null && kb.tKey.wasPressedThisFrame && !_hud.OverlayOpen)
@@ -569,6 +570,25 @@ namespace Blacksmith.World
             WorkpieceState.Dagger => "단검",
             _ => "없음",
         };
+
+        // 작업대에 붙어 있으면 왼쪽 위를 퀘스트 창 대신 그 단계 TIP 으로
+        string _tipKey;
+
+        void UpdateTip()
+        {
+            bool working = _current != null && _current.Role == StationRole.Work;
+            string key = !working ? null : _activity != null ? _activity.Part.Id : _current.Kind.ToString();
+            if (key == _tipKey) return;
+            _tipKey = key;
+            if (key == null)
+            {
+                _hud.SetTip(null, null);
+                return;
+            }
+            string title = _activity != null ? _activity.Part.Part.name : _current.DisplayName;
+            string text = _activity != null ? ActivityTips.Of(_activity.Part.Id) : ActivityTips.Of(_current.Kind);
+            _hud.SetTip(title, text ?? "아래 안내를 따라 하세요. Esc 로 떠나기.");
+        }
 
         // 작업대마다 바닥 앞쪽에 이름표. 지금 가야 할 곳은 금색.
         void UpdateTags()

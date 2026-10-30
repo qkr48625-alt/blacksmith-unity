@@ -11,24 +11,29 @@ using UnityEngine.InputSystem;
 
 namespace Blacksmith.Activities
 {
-    // 정련 ① 접기 단접: 마우스(또는 스페이스)를 누르고 있으면 망치가 올라가고, 떼면 내리친다.
-    // 올라간 높이가 힘이고, 모루 옆 눈금 기둥의 금색 띠가 이번에 필요한 힘이다. 4번 치면 한 번 접힌다. 5번 접기.
-    // 힘 · 구간 수치는 웹 버전 FoldStage.jsx 와 같다. 쇠가 체리빛 아래로 식으면 맞아도 반만 먹는다 — 화덕에 다녀와야 한다.
+    // 정련 ① 접기 단접 — "망치 세게 치기": 모루 옆 눈금 기둥의 흰 표시가 아래에서 위로 계속 올라가고, 맨 위를 넘으면
+    // 아래로 돌아가 다시 올라간다. 맨 위 금색 칸에서 클릭(또는 스페이스)하면 최대 힘으로 내리친다. 망치는 들린 채로 기다린다.
+    // 4번 치면 한 번 접힌다. 5번 접기. 접을수록 게이지가 빨라지고 금색 칸이 좁아진다.
+    // 쇠가 체리빛 아래로 식으면 맞아도 반만 먹는다 — 화덕에 다녀와야 한다.
     public sealed class FoldActivity : IStationActivity
     {
         const int Folds = 5;
         const int Blows = 4;
         const float FoldAnimSeconds = 0.6f;
+        const float StrikeSeconds = 0.35f;     // 내리친 뒤 망치를 다시 드는 동안 게이지가 멈춘다
+        const float Ready = 0.85f;             // 기다리는 동안 망치를 든 높이
 
-        static float FillOf(int fold) => 1.2f - 0.08f * fold;
-        float HalfOf(int fold) => (0.12f - 0.012f * fold) * _hammer;
-        float _hammer = 1f;   // 좋은 망치 업그레이드: 힘 구간 배율
+        // 게이지가 바닥에서 꼭대기까지 오르는 시간(초): 1.3 → 0.9
+        static float PeriodOf(int fold) => 1.3f - 0.1f * fold;
+        // 금색 칸: 꼭대기에 붙어 있다(위 끝 = 게이지 맨 위). 반폭 0.07 → 0.046 (좋은 망치면 1.3배)
+        float TopCenter => 1f - HalfOf(_fold);
+        float HalfOf(int fold) => (0.07f - 0.006f * fold) * _hammer;
+        float _hammer = 1f;
 
         AnvilStation _anvil;
         Workpiece _piece;
-        System.Random _rng;
-        float _ct, _pos, _target, _foldAnim;
-        bool _charging, _active, _wasHeld = true;
+        float _sweep, _foldAnim, _wait;
+        bool _active, _wasHeld = true;
         int _fold, _blow, _coldHits;
         readonly List<int> _scores = new();
 
@@ -44,41 +49,44 @@ namespace Blacksmith.Activities
             {
                 string cold = _piece != null && _piece.Temperature < Workpiece.WorkableTemp
                     ? " · 쇠가 식었습니다! 화덕에서 달궈 오세요" : "";
-                return $"누르고 있다가 떼서 내리치기 (스페이스도 됨) · 망치 높이를 기둥의 금색 띠에 맞추세요 · {_fold + 1}/{Folds}번째 접기 {_blow}/{Blows}{cold}";
+                return $"게이지가 맨 위 금색 칸에 올 때 클릭(또는 스페이스)으로 최대 힘! · {_fold + 1}/{Folds}번째 접기 {_blow}/{Blows}{cold}";
             }
         }
-
-        float NewTarget() => 0.55f + (float)_rng.NextDouble() * 0.3f;
 
         public void Begin(ActivityContext ctx)
         {
             _anvil = ctx.Station as AnvilStation;
             _piece = ctx.Piece;
-            _rng = ctx.Game.Rng;
             _hammer = ctx.Game.Mod("hammerHalf", 1f);
-            _target = NewTarget();
             if (_anvil == null) Debug.LogError("[Fold] 모루가 아닌 작업대에서 시작했습니다.");
         }
 
         public void Enter()
         {
             _active = true;
-            _charging = false;
             _wasHeld = true;
-            _anvil?.ShowTarget(_target, HalfOf(_fold));
+            _sweep = 0f;
+            _anvil?.ShowTarget(TopCenter, HalfOf(_fold));
+            _anvil?.SetPower(Ready);
             ApplyShape();
         }
 
         public void Exit()
         {
             _active = false;
-            _charging = false;
             _anvil?.SetPower(0f);
+            _anvil?.SetMeter(-1f);
         }
 
         public void Tick(float dt)
         {
             if (IsDone || !_active || _anvil == null) return;
+
+            bool held = (Mouse.current != null && Mouse.current.leftButton.isPressed && !WorkshopGame.PointerOverUi)
+                        || (Keyboard.current != null && Keyboard.current.spaceKey.isPressed);
+            // 새로 눌렀을 때만 친다(작업대를 고른 클릭이 그대로 망치질이 되지 않게)
+            bool pressed = held && !_wasHeld;
+            _wasHeld = held;
 
             if (_foldAnim > 0f)
             {
@@ -86,31 +94,23 @@ namespace Blacksmith.Activities
                 ApplyShape();
                 return;
             }
+            if (_wait > 0f)
+            {
+                _wait -= dt;
+                if (_wait <= 0f) _anvil.SetPower(Ready);
+                return;
+            }
 
-            bool held = (Mouse.current != null && Mouse.current.leftButton.isPressed && !WorkshopGame.PointerOverUi)
-                        || (Keyboard.current != null && Keyboard.current.spaceKey.isPressed);
-            // 새로 눌렀을 때만 들기 시작한다(작업대를 고른 클릭이 그대로 망치질이 되지 않게)
-            bool pressed = held && !_wasHeld;
-            _wasHeld = held;
-            if (pressed && !_charging)
-            {
-                _charging = true;
-                _ct = 0f;
-            }
-            if (_charging)
-            {
-                _ct += dt;
-                // 가득 찬 뒤에도 들고 있으면 팔이 떨려 다시 내려온다(삼각파)
-                _pos = Gauge.Triangle(_ct, 2f * FillOf(_fold));
-                _anvil.SetPower(_pos);
-                if (!held) Strike();
-            }
+            // 톱니 게이지: 0 → 1 로 오르고 넘으면 0 부터 다시
+            _sweep = (_sweep + dt / PeriodOf(_fold)) % 1f;
+            _anvil.SetMeter(_sweep);
+            _anvil.SetPower(Ready);
+            if (pressed) Strike(_sweep);
         }
 
-        void Strike()
+        void Strike(float pos)
         {
-            _charging = false;
-            int sc = Gauge.Score(_pos, _target, HalfOf(_fold));
+            int sc = Gauge.Score(pos, TopCenter, HalfOf(_fold));
             bool cold = _piece != null && _piece.Temperature < Workpiece.WorkableTemp;
             if (cold)
             {
@@ -118,12 +118,15 @@ namespace Blacksmith.Activities
                 _coldHits++;
             }
             _scores.Add(sc);
-            _anvil.Strike();
+            // 게이지 높이만큼 세게 내리친다
+            _anvil.Strike(Mathf.Max(0.3f, pos));
+            _wait = StrikeSeconds;
+            _sweep = 0f;
+            _anvil.SetMeter(pos);
 
             var hitPos = _piece != null ? _piece.transform.position : _anvil.WorkPoint.position;
             FeedbackHub.Instance?.Hit(hitPos + Random.insideUnitSphere * 0.03f, cold ? Mathf.Min(sc, 20) : sc);
 
-            _target = NewTarget();
             _blow++;
             if (_blow == Blows)
             {
@@ -136,7 +139,7 @@ namespace Blacksmith.Activities
                 }
                 _foldAnim = FoldAnimSeconds;
             }
-            _anvil.ShowTarget(_target, HalfOf(_fold));
+            _anvil.ShowTarget(TopCenter, HalfOf(_fold));
             ApplyShape();
         }
 
@@ -165,6 +168,8 @@ namespace Blacksmith.Activities
                 .Add("perFold", "접기별 평균", string.Join(" / ", perFold));
             if (_piece != null) _piece.transform.localScale = Vector3.one;
             _anvil.SetGaugeVisible(false);
+            _anvil.SetMeter(-1f);
+            _anvil.SetPower(0f);
             IsDone = true;
         }
     }

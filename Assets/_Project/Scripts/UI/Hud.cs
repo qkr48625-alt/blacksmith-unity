@@ -14,6 +14,8 @@ namespace Blacksmith.UI
         readonly VisualElement _root, _orderList, _options, _panelHost, _overlay, _overlayBody, _toasts;
         readonly Label _orderTitle, _orderProgress, _prompt, _hint, _warning;
         float _warningT;
+        VisualElement _order, _tip;
+        Label _tipTitle, _tipBody;
         readonly List<(Label label, float t)> _toastItems = new();
 
         public Hud(VisualElement root)
@@ -23,6 +25,7 @@ namespace Blacksmith.UI
             root.pickingMode = PickingMode.Ignore;
 
             var order = Ui.Box("panel", "hud-order");
+            _order = order;
             _orderTitle = Ui.Label("", "h2");
             _orderProgress = Ui.Label("", "small", "muted");
             _orderList = Ui.Box("hud-order__list");
@@ -174,6 +177,27 @@ namespace Blacksmith.UI
                 _root.Add(_status);
             }
             SetText(_status, text);
+        }
+
+        // 작업대에 붙어 있는 동안은 퀘스트 창 대신 왼쪽 위에 그 단계의 짧은 TIP. text 가 null 이면 퀘스트 창으로 돌아간다.
+        public void SetTip(string title, string text)
+        {
+            if (_tip == null)
+            {
+                _tip = Ui.Box("panel", "hud-tip");
+                _tip.pickingMode = PickingMode.Ignore;
+                _tipTitle = Ui.Label("", "small", "amber");
+                _tipBody = Ui.Label("", "hud-tip__body");
+                _tip.Add(_tipTitle);
+                _tip.Add(_tipBody);
+                _root.Add(_tip);
+            }
+            bool on = !string.IsNullOrEmpty(text);
+            _tip.style.display = on ? DisplayStyle.Flex : DisplayStyle.None;
+            _order.style.display = on ? DisplayStyle.None : DisplayStyle.Flex;
+            if (!on) return;
+            _tipTitle.text = "TIP · " + title;
+            _tipBody.text = text;
         }
 
         public void SetPrompt(string text) => SetText(_prompt, text);

@@ -14,6 +14,7 @@ namespace Blacksmith.Stations
         [SerializeField] Transform powerMarker;   // 눈금 기둥의 흰 표시(지금 힘)
 
         float _power;
+        float _meter = -1f;   // 0 이상이면 눈금 기둥 흰 표시를 망치와 따로 움직인다(망치 세게 치기 게이지)
         float _strikeT;   // 내리치는 중이면 남은 시간
         float _strikeFrom;
 
@@ -34,6 +35,7 @@ namespace Blacksmith.Stations
         {
             base.Exit();
             _power = 0f;
+            _meter = -1f;
             SetGaugeVisible(false);
         }
 
@@ -55,6 +57,16 @@ namespace Blacksmith.Stations
 
         public void SetPower(float power) => _power = Mathf.Clamp01(power);
 
+        // 눈금 기둥의 흰 표시만 움직인다(음수면 다시 망치 힘을 따른다)
+        public void SetMeter(float v) => _meter = v < 0f ? -1f : Mathf.Clamp01(v);
+
+        // 들고 있던 높이(from)에서 내리친다
+        public void Strike(float from)
+        {
+            _power = from;
+            Strike();
+        }
+
         public void Strike()
         {
             _strikeFrom = _power;
@@ -74,7 +86,7 @@ namespace Blacksmith.Stations
 
             if (hammerPivot != null) hammerPivot.localRotation = Quaternion.Euler(0f, 0f, angle);
             if (powerMarker != null)
-                powerMarker.localPosition = new Vector3(powerMarker.localPosition.x, _power * PostHeight, powerMarker.localPosition.z);
+                powerMarker.localPosition = new Vector3(powerMarker.localPosition.x, (_meter >= 0f ? _meter : _power) * PostHeight, powerMarker.localPosition.z);
         }
     }
 }
