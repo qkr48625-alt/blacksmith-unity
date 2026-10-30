@@ -23,7 +23,7 @@ namespace Blacksmith.Activities
         const float StrikeSeconds = 0.3f;      // 내리친 뒤 잠깐 다음 타격을 받지 않는다
 
         // 오르는 빠르기(높이/초): 바닥에서 느리게 시작해 위로 갈수록 빨라진다. 접을수록 전체가 빨라진다.
-        float SpeedAt(float pos) => (0.25f + 0.9f * pos * pos) * (1f + 0.1f * _fold);   // 꼭대기까지 약 2.3초, 꼭대기 근처 초당 1.15
+        float SpeedAt(float pos) => (0.5f + 1.4f * pos * pos) * (1f + 0.1f * _fold);   // 꼭대기까지 약 1.2초, 꼭대기 근처 초당 1.9
         // 금색 선: 꼭대기에 붙은 얇은 띠. 반폭 0.04 → 0.03 (전에는 0.07, 좋은 망치면 1.3배)
         float HalfOf(int fold) => (0.04f - 0.0025f * fold) * _hammer;
         float TopCenter => 1f - HalfOf(_fold);
