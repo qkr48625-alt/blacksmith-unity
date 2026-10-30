@@ -65,7 +65,7 @@ namespace Blacksmith.EditorTools
                 Capture("smoke-start.png");
                 // 슬래그 단면 창: 차오른 상태 + 쏟아지는 줄기를 그 카메라 자리에서 찍는다
                 var pit = Object.FindAnyObjectByType<Blacksmith.Stations.SlagPit>();
-                Line($"slag pit={pit != null}");
+                Line($"slag pit={pit != null} dial band pivot={GameObject.Find("Band Pivot") != null}");
                 if (pit != null)
                 {
                     pit.SetLevel(0.62f);

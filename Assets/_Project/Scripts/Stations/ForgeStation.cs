@@ -20,6 +20,11 @@ namespace Blacksmith.Stations
         [SerializeField] Renderer coals;
         [SerializeField] ParticleSystem embers;
         [SerializeField] GameObject oreVisual;      // 제련 중 숯 속 광석
+        [SerializeField] Transform bandPivot;       // 온도계 금색 칸 회전축(가운데가 칸 중심 온도)
+
+        // 풀무질이 아닐 때 금색 칸이 가리키는 자리(제련 · 접기에 알맞은 온도)
+        public const float DefaultBandCenter = 1150f;
+        float _bandCenter = DefaultBandCenter, _bandShown = DefaultBandCenter, _blinkT;
 
         float _fire = 900f;
         float _handle;      // 0 = 올라감, 1 = 끝까지 내림
@@ -36,8 +41,17 @@ namespace Blacksmith.Stations
         // 바람이 없으면 식는 속도(℃/초). 뜨거울수록 빨리 식는다.
         static float CoolOf(float temp) => 25f + 0.06f * (temp - TMin);
 
-        public void Bind(Transform handle, Transform body, Transform needle, Light light, Renderer coalRenderer, ParticleSystem emberSystem, GameObject ore)
+        // 금색 칸을 center 로 옮긴다(바늘처럼 부드럽게 돌아간다). 칸 폭은 다이얼에 고정(±50℃).
+        public void SetBand(float center, float half) => _bandCenter = center;
+        public void ResetBand() => _bandCenter = DefaultBandCenter;
+        // 곧 옮겨 간다고 알리는 깜빡임
+        public void BlinkBand(float seconds) => _blinkT = seconds;
+
+        static float DialAngle(float temp) => Mathf.Lerp(120f, -120f, Mathf.InverseLerp(TMin, TMax, temp));
+
+        public void Bind(Transform handle, Transform body, Transform needle, Light light, Renderer coalRenderer, ParticleSystem emberSystem, GameObject ore, Transform band)
         {
+            bandPivot = band;
             bellowsHandle = handle;
             bellowsBody = body;
             dialNeedle = needle;
@@ -126,8 +140,16 @@ namespace Blacksmith.Stations
                 var s = bellowsBody.localScale;
                 bellowsBody.localScale = new Vector3(s.x, Mathf.Lerp(0.35f, 0.18f, _handle), s.z);
             }
-            // 바늘: 300℃ = -120°, 1,400℃ = +120°
-            if (dialNeedle != null) dialNeedle.localRotation = Quaternion.Euler(0f, 0f, Mathf.Lerp(120f, -120f, heat));
+            // 바늘: 300℃ = +120°, 1,400℃ = -120°
+            if (dialNeedle != null) dialNeedle.localRotation = Quaternion.Euler(0f, 0f, DialAngle(_fire));
+            if (bandPivot != null)
+            {
+                _bandShown = Mathf.MoveTowards(_bandShown, _bandCenter, 400f * Time.deltaTime);
+                bandPivot.localRotation = Quaternion.Euler(0f, 0f, DialAngle(_bandShown));
+                if (_blinkT > 0f) _blinkT -= Time.deltaTime;
+                bool visible = _blinkT <= 0f || Mathf.Repeat(_blinkT, 0.25f) > 0.1f;
+                if (bandPivot.gameObject.activeSelf != visible) bandPivot.gameObject.SetActive(visible);
+            }
 
             float flicker = 1f + 0.12f * Mathf.PerlinNoise(_t * 7f, 0.3f) - 0.06f + (Pumping ? 0.15f : 0f);
             if (fireLight != null)

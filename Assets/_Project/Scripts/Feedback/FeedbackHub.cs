@@ -65,6 +65,9 @@ namespace Blacksmith.Feedback
 
         public void Done(Vector3 pos) => Play(_chime, pos, 0.8f, 1f);
 
+        // 곧 무언가 바뀐다는 가벼운 "띵"(풀무질 금색 칸이 옮겨 가기 전)
+        public void Cue(Vector3 pos) => Play(_clankBright, pos, 0.35f, 1.7f);
+
         // 쇠꼬챙이로 배출구를 찌름(둔한 소리 + 작은 불티)
         public void Poke(Vector3 pos)
         {
