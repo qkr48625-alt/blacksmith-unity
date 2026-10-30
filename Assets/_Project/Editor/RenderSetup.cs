@@ -92,7 +92,7 @@ namespace Blacksmith.EditorTools
             if (profile.TryGet(out ColorAdjustments color))
             {
                 color.postExposure.Override(0.4f);
-                color.contrast.Override(6f);
+                color.contrast.Override(14f);
             }
             foreach (var c in profile.components) EditorUtility.SetDirty(c);
             EditorUtility.SetDirty(profile);

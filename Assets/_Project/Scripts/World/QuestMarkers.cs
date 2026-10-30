@@ -19,7 +19,6 @@ namespace Blacksmith.World
         }
 
         readonly List<Marker> _markers = new();
-        readonly Dictionary<Station, float> _tops = new();
         Material _mat;
         Mesh _arrowMesh, _ringMesh;
 
@@ -61,7 +60,7 @@ namespace Blacksmith.World
                 m.Arrow.localRotation = Quaternion.Euler(0f, t * 90f, 0f);
                 float ring = 0.9f + 0.12f * pulse;
                 m.Ring.localScale = new Vector3(ring, 1f, ring);
-                m.Light.intensity = 0.3f + 0.5f * pulse;
+                m.Light.intensity = 0.2f + 0.35f * pulse;
             }
         }
 
@@ -71,7 +70,7 @@ namespace Blacksmith.World
             root.SetParent(transform, false);
 
             // 일하는 자리 바로 위, 서는 자리 쪽으로 조금 당겨서(벽에 붙은 작업대도 화면 위로 안 잘리게)
-            var bounds = BoundsOf(s);
+            var bounds = s.VisualBounds();
             var work = s.WorkPoint.position;
             var pull = s.Approach.position - work;
             pull.y = 0f;
@@ -107,20 +106,6 @@ namespace Blacksmith.World
             light.shadows = LightShadows.None;
 
             return new Marker { Station = s, Root = root, Arrow = arrow, Ring = ring, Light = light, ArrowY = top.y };
-        }
-
-        Bounds BoundsOf(Station s)
-        {
-            Bounds b = default;
-            bool any = false;
-            foreach (var r in s.GetComponentsInChildren<Renderer>())
-            {
-                if (r is ParticleSystemRenderer) continue;
-                if (!any) b = r.bounds;
-                else b.Encapsulate(r.bounds);
-                any = true;
-            }
-            return any ? b : new Bounds(s.transform.position + Vector3.up, Vector3.one);
         }
 
         // 바닥에 눕힌 납작한 고리(위에서 보이는 면만)

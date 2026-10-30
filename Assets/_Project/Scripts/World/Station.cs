@@ -51,6 +51,21 @@ namespace Blacksmith.World
             if (view != null) view.Priority = 0;
         }
 
+        // 작업대 몸통이 차지하는 공간(불티 같은 파티클은 뺀다)
+        public Bounds VisualBounds()
+        {
+            Bounds b = default;
+            bool any = false;
+            foreach (var r in GetComponentsInChildren<Renderer>())
+            {
+                if (r is ParticleSystemRenderer) continue;
+                if (!any) b = r.bounds;
+                else b.Encapsulate(r.bounds);
+                any = true;
+            }
+            return any ? b : new Bounds(transform.position + Vector3.up, Vector3.one);
+        }
+
         public static string KindName(StationKind k) => k switch
         {
             StationKind.Forge => "화덕",

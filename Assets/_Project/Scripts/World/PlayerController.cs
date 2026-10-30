@@ -68,6 +68,13 @@ namespace Blacksmith.World
             if (d.sqrMagnitude > 1e-4f) transform.rotation = Quaternion.LookRotation(d);
         }
 
+        // 작업대에서 일할 때 몸이 작업대를 가리지 않게 숨긴다. 집게에 물린 작업물(Hold Point 아래)은 그대로 보인다.
+        public void SetBodyVisible(bool visible)
+        {
+            foreach (Transform c in transform)
+                if (c.TryGetComponent<Renderer>(out var r)) r.enabled = visible;
+        }
+
         public void Stop()
         {
             if (_agent.isOnNavMesh) _agent.ResetPath();

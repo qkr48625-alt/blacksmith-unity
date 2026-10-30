@@ -50,6 +50,8 @@ namespace Blacksmith.World
         bool _burnWarnedFirst, _burnWarnedLast;
         QuestMarkers _markers;
         float _questRefreshT;   // 쇠 온도에 따라 퀘스트 안내가 바뀌어서 가끔 다시 그린다
+        HashSet<Station> _targets = new();
+        readonly Dictionary<Station, Vector3> _tagAnchors = new();
 
         RecipeDef Recipe => _save.hasRun ? recipes.Find(r => r != null && r.key == _save.run.recipeKey) : null;
 
@@ -135,6 +137,7 @@ namespace Blacksmith.World
             UpdateBurn();
 
             _markers.Hidden = _current != null || _hud.OverlayOpen;
+            UpdateTags();
             _questRefreshT -= dt;
             if (_questRefreshT <= 0f)
             {
@@ -160,6 +163,7 @@ namespace Blacksmith.World
             _enteredFrame = Time.frameCount;
             player.Stop();
             player.FaceTowards(s.WorkPoint.position);
+            player.SetBodyVisible(false);   // 작업대 시점에서 몸이 작업대를 가리지 않게
             s.Enter();
             _hud.SetPrompt(null);
 
@@ -183,6 +187,7 @@ namespace Blacksmith.World
             HoldPiece();
             _current.Exit();
             _current = null;
+            player.SetBodyVisible(true);
             _hud.ClearOptions();
             _hud.SetHint(null);
             RefreshOrder();
@@ -514,6 +519,7 @@ namespace Blacksmith.World
                 lines.Add(($"{To(board != null ? board.DisplayName : "게시판")} 가서 E 또는 클릭", "quest-sub"));
                 _hud.SetWorkOrder("만들 물건 없음", "게시판에서 고르세요", lines);
                 _markers.Show(targets);
+                _targets = targets;
                 return;
             }
 
@@ -554,6 +560,7 @@ namespace Blacksmith.World
             _hud.SetWorkOrder(recipe.displayName,
                 $"{CraftPlan.DoneCount(recipe, _save.run)}/{CraftPlan.PartCount(recipe)} 단계 · 작업물: {piece}", lines);
             _markers.Show(targets);
+            _targets = targets;
         }
 
         bool NeedsHeat(PartRef p) =>
@@ -582,6 +589,25 @@ namespace Blacksmith.World
             WorkpieceState.Dagger => "단검",
             _ => "없음",
         };
+
+        // 작업대마다 바닥 앞쪽에 이름표. 지금 가야 할 곳은 금색.
+        void UpdateTags()
+        {
+            bool show = _current == null && !_hud.OverlayOpen;
+            var cam = Camera.main;
+            foreach (var s in _stations)
+            {
+                if (!_tagAnchors.TryGetValue(s, out var at))
+                {
+                    var b = s.VisualBounds();
+                    var front = new Vector3(b.center.x, 0f, b.center.z);
+                    var stand = s.Approach.position;
+                    at = Vector3.Lerp(new Vector3(stand.x, 0f, stand.z), front, 0.45f);
+                    _tagAnchors[s] = at;
+                }
+                _hud.WorldLabel(s, s.DisplayName, at, cam, show, _targets.Contains(s));
+            }
+        }
 
         void UpdatePrompt()
         {

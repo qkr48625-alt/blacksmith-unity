@@ -104,18 +104,21 @@ namespace Blacksmith.EditorTools
         static void EnsureMaterials()
         {
             EnsureFolder(MatDir);
-            Lit("Floor", new Color(0.36f, 0.3f, 0.24f), 0f, 0.15f);
-            Lit("Wall", new Color(0.46f, 0.4f, 0.33f), 0f, 0.05f);
+            // 바닥 · 벽은 차가운 회색으로 눌러 두고, 작업대(나무 · 쇠)와 대장장이가 그 위에서 도드라지게 한다
+            Lit("Floor", new Color(0.2f, 0.2f, 0.21f), 0f, 0.15f);
+            Lit("Wall", new Color(0.33f, 0.32f, 0.31f), 0f, 0.05f);
             Lit("Lantern", new Color(1f, 0.85f, 0.6f), 0f, 0.3f, new Color(1f, 0.7f, 0.4f) * 3f);
-            Lit("Stone", new Color(0.36f, 0.34f, 0.33f), 0f, 0.1f);
-            Lit("Wood", new Color(0.42f, 0.27f, 0.15f), 0f, 0.25f);
-            Lit("Iron", new Color(0.22f, 0.22f, 0.24f), 0.85f, 0.55f);
+            Lit("Stone", new Color(0.5f, 0.47f, 0.44f), 0f, 0.1f);
+            Lit("Wood", new Color(0.55f, 0.34f, 0.17f), 0f, 0.25f);
+            // 반사할 하늘이 없어서 금속성을 높이면 새까맣게 보인다. 밝은 회청색 + 중간 금속성.
+            Lit("Iron", new Color(0.46f, 0.48f, 0.52f), 0.45f, 0.55f);
             Lit("Leather", new Color(0.36f, 0.2f, 0.12f), 0f, 0.35f);
             Lit("Water", new Color(0.05f, 0.1f, 0.14f), 0f, 0.95f);
             Lit("Brass", new Color(0.75f, 0.58f, 0.25f), 0.9f, 0.6f);
             Lit("Paper", new Color(0.86f, 0.8f, 0.66f), 0f, 0.05f);
-            Lit("Player", new Color(0.55f, 0.36f, 0.22f), 0f, 0.3f);
-            Lit("Apron", new Color(0.18f, 0.12f, 0.08f), 0f, 0.3f);
+            // 대장장이는 갈색 대장간에서 한눈에 보이게 푸른 옷
+            Lit("Player", new Color(0.24f, 0.42f, 0.66f), 0f, 0.3f);
+            Lit("Apron", new Color(0.3f, 0.19f, 0.1f), 0f, 0.3f);
             Lit("Coal", new Color(0.05f, 0.04f, 0.04f), 0f, 0.1f, new Color(1f, 0.3f, 0.05f) * 1.5f);
             Lit("HotMetal", new Color(0.28f, 0.27f, 0.27f), 0.8f, 0.45f, Color.black);
             Lit("Gold", new Color(1f, 0.75f, 0.2f), 0f, 0.5f, new Color(1f, 0.7f, 0.15f) * 1.6f);
@@ -185,18 +188,19 @@ namespace Blacksmith.EditorTools
         {
             // 위는 밝고 바닥 쪽은 어두운 세 갈래 주변광(검게 뭉개지지 않게)
             RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = new Color(0.5f, 0.47f, 0.44f);
-            RenderSettings.ambientEquatorColor = new Color(0.36f, 0.31f, 0.27f);
-            RenderSettings.ambientGroundColor = new Color(0.17f, 0.14f, 0.11f);
+            // 주황빛을 덜어 낸 중립 톤(모든 게 갈색으로 뭉개지지 않게)
+            RenderSettings.ambientSkyColor = new Color(0.56f, 0.57f, 0.6f);
+            RenderSettings.ambientEquatorColor = new Color(0.4f, 0.39f, 0.38f);
+            RenderSettings.ambientGroundColor = new Color(0.2f, 0.19f, 0.18f);
             RenderSettings.skybox = null;
 
-            // 창으로 드는 낮빛
+            // 창으로 드는 낮빛(주 조명). 그림자는 옅게 해서 작업대 아래가 새까맣지 않게.
             var sun = new GameObject("Window Light").AddComponent<Light>();
             sun.type = LightType.Directional;
-            sun.color = new Color(1f, 0.93f, 0.82f);
-            sun.intensity = 1.1f;
+            sun.color = new Color(1f, 0.97f, 0.92f);
+            sun.intensity = 1.5f;
             sun.shadows = LightShadows.Soft;
-            sun.shadowStrength = 0.7f;
+            sun.shadowStrength = 0.55f;
             sun.transform.rotation = Quaternion.Euler(52f, -30f, 0f);
 
             // 천장 등불: 뒤쪽 둘은 매단 등이 보이고, 앞쪽은 빛만 둔다(앞에 매달면 카메라와 대장장이 사이를 가린다)
@@ -207,8 +211,8 @@ namespace Blacksmith.EditorTools
                 l.transform.SetParent(lanterns, false);
                 l.transform.position = p;
                 l.type = LightType.Point;
-                l.color = new Color(1f, 0.78f, 0.5f);
-                l.intensity = 3f;
+                l.color = new Color(1f, 0.85f, 0.65f);
+                l.intensity = 2.2f;
                 l.range = 7f;
                 if (!visible) continue;
                 Prim("Lantern", PrimitiveType.Cube, lanterns, p + new Vector3(0f, 0.1f, 0f), new Vector3(0.14f, 0.2f, 0.14f), "Lantern", collider: false);
@@ -219,7 +223,7 @@ namespace Blacksmith.EditorTools
             var lamp = new GameObject("Bench Lamp").AddComponent<Light>();
             lamp.type = LightType.Point;
             lamp.color = new Color(1f, 0.75f, 0.45f);
-            lamp.intensity = 2.5f;
+            lamp.intensity = 0.9f;
             lamp.range = 5f;
             lamp.transform.position = new Vector3(3.8f, 2.4f, -1.2f);
 
@@ -250,7 +254,9 @@ namespace Blacksmith.EditorTools
             overview.Priority = 10;
             overview.Lens.FieldOfView = 40f;
             var follow = overview.gameObject.AddComponent<CinemachineFollow>();
-            follow.FollowOffset = new Vector3(0f, 7.5f, -6.3f);
+            // 조금 더 가까이(작업대가 작게 보이지 않게). 뒤로 덜 물러나서 화면 가운데가 대장장이보다 1.8m 앞을 본다
+            // — 작업대가 뒤쪽 벽을 따라 놓여 있어서, 대장장이는 화면 아래쪽에 두고 앞을 넓게 보여 준다.
+            follow.FollowOffset = new Vector3(0f, 6.4f, -3.6f);
             var tracker = follow.TrackerSettings;
             tracker.BindingMode = Unity.Cinemachine.TargetTracking.BindingMode.WorldSpace;
             tracker.PositionDamping = new Vector3(0.6f, 0.6f, 0.6f);

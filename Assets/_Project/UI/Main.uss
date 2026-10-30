@@ -211,22 +211,37 @@ Label {
 .placeholder__slider Label { min-width: 60px; }
 
 /* ── 3D 대장간 HUD ─────────────────────────────── */
-.hud { flex-grow: 1; font-size: 17px; }
+.hud { flex-grow: 1; font-size: 18px; }
 .hud-order {
     position: absolute;
     left: 16px;
     top: 16px;
-    width: 300px;
-    background-color: rgba(12, 10, 9, 0.82);
+    width: 340px;
+    background-color: rgba(12, 10, 9, 0.9);
+    border-color: var(--line-strong);
 }
+.hud-order .small { font-size: 16px; }
 .hud-order__list { margin-top: 6px; }
 .hud-order__line { color: #d6d3d1; }
-.quest-head { color: var(--muted); font-size: 13px; margin-top: 8px; }
+.hud-order .quest-head { color: var(--muted); font-size: 14px; margin-top: 10px; }
 .quest-now { color: var(--amber); -unity-font-style: bold; margin-top: 4px; }
-.quest-sub { color: #d6d3d1; font-size: 13px; padding-left: 18px; }
-.quest-done { color: #7c8f6a; }
-.quest-current { color: #e7e5e4; }
-.quest-locked { color: #57534e; }
+.hud-order .quest-sub { color: #e7e5e4; font-size: 15px; padding-left: 18px; }
+.quest-done { color: #9cc27f; }
+.quest-current { color: #f5f5f4; }
+.quest-locked { color: #8a837d; }
+/* 작업대 이름표(3D 위치를 따라다닌다) */
+.hud-tag {
+    position: absolute;
+    translate: -50% -50%;
+    padding: 2px 10px;
+    border-radius: 8px;
+    background-color: rgba(12, 10, 9, 0.72);
+    color: #e7e5e4;
+    font-size: 15px;
+    -unity-font-style: bold;
+    white-space: nowrap;
+}
+.hud-tag--target { background-color: rgba(217, 119, 6, 0.92); color: #1c1917; }
 .hud-toasts { position: absolute; top: 16px; left: 340px; right: 340px; align-items: center; }
 .hud-toast { background-color: rgba(12, 10, 9, 0.85); border-color: var(--amber-deep); margin: 4px 0; padding: 8px 16px; }
 .hud-warning {
@@ -246,8 +261,9 @@ Label {
 .hud-options > .btn { margin: 0 6px 6px 6px; }
 .btn-option { background-color: #44403c; }
 .hud-hint, .hud-prompt {
-    background-color: rgba(12, 10, 9, 0.85);
-    padding: 8px 16px;
+    background-color: rgba(12, 10, 9, 0.92);
+    padding: 10px 18px;
+    font-size: 19px;
     margin: 4px 0;
     max-width: 900px;
     -unity-text-align: middle-center;

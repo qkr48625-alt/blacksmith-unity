@@ -118,6 +118,29 @@ namespace Blacksmith.UI
                 _orderList.Add(Ui.Label(text, "small", style));
         }
 
+        // 3D 물체 위에 붙는 이름표(작업대 이름). 화면 밖이거나 카메라 뒤면 숨긴다.
+        readonly Dictionary<object, Label> _worldLabels = new();
+
+        public void WorldLabel(object key, string text, Vector3 world, Camera cam, bool visible, bool highlight)
+        {
+            if (!_worldLabels.TryGetValue(key, out var l))
+            {
+                l = Ui.Label(text, "hud-tag");
+                l.pickingMode = PickingMode.Ignore;
+                _root.Insert(0, l);   // 다른 HUD 밑에 깔리게
+                _worldLabels[key] = l;
+            }
+            var panel = _root.panel;
+            bool show = visible && panel != null && cam != null && cam.WorldToViewportPoint(world).z > 0f;
+            l.style.display = show ? DisplayStyle.Flex : DisplayStyle.None;
+            if (!show) return;
+            l.text = text;
+            l.EnableInClassList("hud-tag--target", highlight);
+            var p = RuntimePanelUtils.CameraTransformWorldToPanel(panel, world, cam);
+            l.style.left = p.x;
+            l.style.top = p.y;
+        }
+
         public void SetPrompt(string text) => SetText(_prompt, text);
         public void SetHint(string text) => SetText(_hint, text);
 
