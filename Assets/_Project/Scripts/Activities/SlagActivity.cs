@@ -13,15 +13,18 @@ using UnityEngine.InputSystem;
 namespace Blacksmith.Activities
 {
     // 제련 ② 슬래그 배출: 화덕 앞면 단면 창에 녹은 슬래그가 차오른다. 배출구보다 높고 송풍관보다 낮은 때
-    // 클릭(또는 스페이스)으로 쇠꼬챙이를 찔러 배출구를 뚫으면 흘러나온다. 4번.
-    // 판정 구간은 창 가운데 금색 선(금) · 옆 틀의 은색 · 구리색 눈금(은 · 동). 수치는 웹 버전 SlagTapStep.jsx 와 같다.
+    // 클릭(또는 스페이스)으로 쇠꼬챙이를 찔러 배출구를 뚫으면 흘러나온다. 5번.
+    // 판정 구간은 금색 선(금) · 옆 틀의 은색 · 구리색 눈금(은 · 동), 폭은 웹 SlagTapStep.jsx 와 같다.
+    // 웹보다 어렵게: 뚫을 때마다 목표 높이(눈금)가 0.58~0.76 사이로 옮겨 가고, 차오르는 속도가 빠르며 뚫을수록 더 빨라지고,
+    // 빨라졌다 느려지는 출렁임 · 표면 보글거림이 크다.
     // 갓 나온 블룸은 그동안 숯 속에 넣어 두어 식지 않게 한다.
     public sealed class SlagActivity : IStationActivity
     {
-        public const int Taps = 4;
+        public const int Taps = 5;
         public const float Hole = 0.5f;     // 배출구 높이. 이보다 낮으면 뚫어도 흘러나오지 않는다
         public const float Tuyere = 0.86f;  // 송풍관 높이. 여기까지 차오르면 바람이 막힌다
-        public const float Center = 0.68f;  // 가장 좋은 때
+        public const float Center = 0.68f;  // 씬의 눈금이 놓인 높이(첫 목표)
+        const float CenterMin = 0.58f, CenterMax = 0.76f;
         public static readonly (string key, string name, float half, int score)[] Zones =
         {
             ("gold", "금", 0.015f, 100),
@@ -43,7 +46,7 @@ namespace Blacksmith.Activities
         Workpiece _piece;
         Hud _hud;
         System.Random _rng;
-        float _t, _level = 0.12f, _shown = 0.12f, _rate, _phase, _drain, _drainFrom;
+        float _t, _level = 0.12f, _shown = 0.12f, _rate, _phase, _drain, _drainFrom, _center = Center;
         bool _active, _wasHeld = true;
         readonly List<TapRec> _taps = new();
 
@@ -58,7 +61,7 @@ namespace Blacksmith.Activities
             get
             {
                 string last = _taps.Count == 0 ? "" : " · " + string.Join(" ", _taps.Select(x => x.Zone == null ? "×" : ZoneName(x.Zone)));
-                return $"클릭(또는 스페이스)으로 배출구 뚫기 · 슬래그 표면이 가운데 금색 선에 올 때 · 옆 눈금 은 · 동까지 합격 · {_taps.Count}/{Taps}{last}";
+                return $"클릭(또는 스페이스)으로 배출구 뚫기 · 슬래그 표면이 금색 선에 올 때(뚫을 때마다 높이가 바뀜) · 옆 눈금 은 · 동까지 합격 · {_taps.Count}/{Taps}{last}";
             }
         }
 
@@ -66,7 +69,8 @@ namespace Blacksmith.Activities
 
         void NewRise()
         {
-            _rate = 0.12f + (float)_rng.NextDouble() * 0.08f;
+            // 웹은 0.12~0.20. 더 빠르게, 뚫은 횟수만큼 더 빨라진다
+            _rate = 0.16f + (float)_rng.NextDouble() * 0.1f + 0.025f * _taps.Count;
             _phase = (float)_rng.NextDouble() * 6f;
         }
 
@@ -87,6 +91,7 @@ namespace Blacksmith.Activities
             _wasHeld = true;
             _pit?.Show(true);
             _pit?.SetLevel(_shown);
+            _pit?.SetTarget(_center);
             KeepBloomHot(true);
         }
 
@@ -139,14 +144,17 @@ namespace Blacksmith.Activities
                         Finish();
                         return;
                     }
+                    // 다음 목표 높이로 눈금을 옮긴다
+                    _center = Mathf.Lerp(CenterMin, CenterMax, (float)_rng.NextDouble());
+                    _pit.SetTarget(_center);
                 }
             }
             else
             {
-                float surge = 1f + 0.45f * Mathf.Sin(_t * 1.9f + _phase);
+                float surge = 1f + 0.65f * Mathf.Sin(_t * 2.3f + _phase) + 0.2f * Mathf.Sin(_t * 5.1f + _phase * 2f);
                 _level += _rate * surge * dt;
                 // 녹은 슬래그 표면이 보글보글 출렁인다(판정은 보이는 높이로)
-                _shown = _level + 0.01f * Mathf.Sin(_t * 9f) + 0.006f * Mathf.Sin(_t * 23f);
+                _shown = _level + 0.016f * Mathf.Sin(_t * 9f) + 0.009f * Mathf.Sin(_t * 23f);
                 if (_level >= Tuyere) Choke();
                 else if (pressed) Tap();
             }
@@ -155,7 +163,7 @@ namespace Blacksmith.Activities
 
         void Tap()
         {
-            var (sc, zone, word) = Judge(_shown);
+            var (sc, zone, word) = Judge(_shown, _center);
             _taps.Add(new TapRec { Score = sc, Zone = zone, Level = Mathf.Round(_shown * 1000f) / 10f });
             _pit.Poke();
             FeedbackHub.Instance?.Poke(_pit.SpoutTip);
@@ -185,14 +193,14 @@ namespace Blacksmith.Activities
             _drain = Drain;
         }
 
-        static (int score, string zone, string word) Judge(float level)
+        static (int score, string zone, string word) Judge(float level, float center)
         {
             if (level < Hole) return (0, null, "구멍보다 낮아 거의 안 나옵니다");
-            float d = Mathf.Abs(level - Center);
+            float d = Mathf.Abs(level - center);
             foreach (var z in Zones)
                 if (d <= z.half)
                     return (z.score, z.key, z.key switch { "gold" => "정확히 맞췄습니다! 금", "silver" => "좋습니다! 은", _ => "합격입니다. 동" });
-            return (0, null, level < Center ? "너무 일렀습니다" : "너무 늦었습니다");
+            return (0, null, level < center ? "너무 일렀습니다" : "너무 늦었습니다");
         }
 
         void Finish()
@@ -205,6 +213,7 @@ namespace Blacksmith.Activities
                 .Add("zones", "금 · 은 · 동", $"{Count("gold")} · {Count("silver")} · {Count("bronze")}")
                 .Add("choked", "송풍관 막힘", _taps.Count(x => x.Choked));
             _pit.Show(false);
+            _pit.SetTarget(Center);
             KeepBloomHot(false);
             IsDone = true;
         }

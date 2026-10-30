@@ -19,6 +19,8 @@ namespace Blacksmith.Stations
         [SerializeField] float height = 0.72f;  // 높이 1 이 몇 m 인가
 
         Vector3 _pokerRest, _surfaceRest;
+        (Transform t, Vector3 rest)[] _marks;   // 판정 눈금(금색 선 · 은 · 동) — 목표 높이에 따라 위아래로 옮긴다
+        const float MarksCenter = 0.68f;        // 씬에서 눈금이 놓인 높이(SlagActivity.Center)
         float _pokeT, _puddleHeat, _t;
         bool _pouring;
         Material _puddleMat;
@@ -41,6 +43,10 @@ namespace Blacksmith.Stations
         {
             if (poker != null) _pokerRest = poker.localPosition;
             if (surface != null) _surfaceRest = surface.localPosition;
+            var marks = new System.Collections.Generic.List<(Transform, Vector3)>();
+            foreach (Transform c in transform)
+                if (c.name is "Gold Line" or "Gold Mark" or "Silver Mark" or "Bronze Mark") marks.Add((c, c.localPosition));
+            _marks = marks.ToArray();
             if (puddle != null)
             {
                 _puddleMat = puddle.material;
@@ -62,6 +68,13 @@ namespace Blacksmith.Stations
             level = Mathf.Clamp(level, 0.001f, 1f);
             if (column != null) column.localScale = new Vector3(1f, level, 1f);
             if (surface != null) surface.localPosition = _surfaceRest + Vector3.up * (level * height);
+        }
+
+        // 판정 눈금을 목표 높이(0~1)로 옮긴다
+        public void SetTarget(float level)
+        {
+            if (_marks == null) return;
+            foreach (var (t, rest) in _marks) t.localPosition = rest + Vector3.up * ((level - MarksCenter) * height);
         }
 
         public void Poke() => _pokeT = PokeSeconds;
