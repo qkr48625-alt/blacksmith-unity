@@ -92,7 +92,7 @@ namespace Blacksmith.EditorTools
             {
                 var pos = player != null ? player.transform.position : Vector3.zero;
                 Line($"after W: pos={pos} moved={(pos - _startPos).magnitude:0.00}m yaw={player?.transform.eulerAngles.y:0} nearest={player?.Nearest?.DisplayName}");
-                TryEconomy();
+                TryBoard();
                 Capture("smoke-after-move.png");
             }
             if (_frame == 120)
@@ -153,37 +153,24 @@ namespace Blacksmith.EditorTools
             }
         }
 
-        // 경영: 손님이 들어왔는지, 게시판 탭 · 진열대 · 손님 창 · 하루 마치기가 예외 없이 그려지는지(저장은 BLACKSMITH_SAVE 파일)
-        static void TryEconomy()
+        // 게시판 · 진열대 창이 예외 없이 그려지는지
+        static void TryBoard()
         {
             var game = Object.FindAnyObjectByType<WorkshopGame>();
-            var customers = Object.FindObjectsByType<Customer>();
-            Line($"customers={customers.Length} arrived={customers.Count(c => c.Arrived)} at={string.Join(" ", customers.Select(c => c.transform.position.ToString("0.0")))}");
             var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-            var type = typeof(WorkshopGame);
-            void Call(string name, params object[] args)
+            foreach (var name in new[] { "ShowBoard", "CloseOverlay", "ShowRack", "CloseOverlay" })
             {
                 try
                 {
-                    type.GetMethod(name, flags).Invoke(game, args);
-                    Line($"economy {name}({string.Join(",", args)}) ok");
+                    typeof(WorkshopGame).GetMethod(name, flags).Invoke(game, null);
+                    Line($"ui {name} ok");
                 }
                 catch (System.Exception e)
                 {
                     var inner = e.InnerException ?? e;
-                    Line($"economy {name}: 예외 {inner.GetType().Name}: {inner.Message}\n{inner.StackTrace}");
+                    Line($"ui {name}: 예외 {inner.GetType().Name}: {inner.Message}\n{inner.StackTrace}");
                 }
             }
-            foreach (var tab in new[] { "orders", "craft", "market", "upgrade" })
-            {
-                type.GetField("_boardTab", flags).SetValue(game, tab);
-                Call("ShowBoard");
-            }
-            Call("ShowRack");
-            if (customers.Length > 0) Call("ShowCustomer", customers[0].GetComponent<Station>());
-            Call("CloseOverlay");
-            Call("EndDay");
-            Call("CloseOverlay");
         }
 
         static void CaptureCam(Unity.Cinemachine.CinemachineCamera cm, string file)

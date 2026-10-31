@@ -158,27 +158,6 @@ namespace Blacksmith.UI
             SetText(_temp, text);
         }
 
-        public void RemoveWorldLabel(object key)
-        {
-            if (!_worldLabels.TryGetValue(key, out var l)) return;
-            l.RemoveFromHierarchy();
-            _worldLabels.Remove(key);
-        }
-
-        Label _status;
-
-        // 오른쪽 위 하루 상태(날짜 · 시각 · 돈 · 평판)
-        public void SetStatus(string text)
-        {
-            if (_status == null)
-            {
-                _status = Ui.Label("", "panel", "hud-status");
-                _status.pickingMode = PickingMode.Ignore;
-                _root.Add(_status);
-            }
-            SetText(_status, text);
-        }
-
         // 작업대에 붙어 있는 동안은 퀘스트 창 대신 왼쪽 위에 그 단계의 짧은 TIP. text 가 null 이면 퀘스트 창으로 돌아간다.
         public void SetTip(string title, string text)
         {

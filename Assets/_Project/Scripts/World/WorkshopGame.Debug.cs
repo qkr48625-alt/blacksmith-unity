@@ -1,7 +1,6 @@
 using System.Linq;
 using Blacksmith.Activities;
 using Blacksmith.Crafting;
-using Blacksmith.Economy;
 using Blacksmith.Minigames;
 using UnityEngine.InputSystem;
 
@@ -9,7 +8,6 @@ namespace Blacksmith.World
 {
     // 에디터에서만 쓰는 점검용 단축키. 단계를 하나씩 확인할 때 앞 단계를 다시 하지 않게 한다.
     //   F5 = 지금 하던(없으면 다음) 세부 단계를 80점으로 건너뛰기   F6 = 들고 있는 쇠를 1,000℃로
-    //   F7 = 돈 +100 · 평판 +5                                    F8 = 시각을 아침 8시로
     public partial class WorkshopGame
     {
 #if UNITY_EDITOR
@@ -23,18 +21,8 @@ namespace Blacksmith.World
             System.IO.File.Delete(file);
             var recipe = recipes.FirstOrDefault(r => r != null);
             if (recipe == null) return;
-            if (Recipe == null)
-            {
-                _draftPick = BestPick();
-                StartRunWithMaterials(recipe);
-            }
             // 목표 단계가 할 수 있게 될 때까지 앞 단계를 건너뛴다(이미 지났으면 새로 시작)
-            if (CraftPlan.IsDone(_save.run, target))
-            {
-                ResetRun();
-                _draftPick = new MaterialPick();
-                StartRun(recipe);
-            }
+            if (Recipe == null || CraftPlan.IsDone(_save.run, target)) StartRun(recipe);
             for (int guard = 0; guard < 30; guard++)
             {
                 var avail = CraftPlan.Available(Recipe, _save.run);
@@ -48,7 +36,6 @@ namespace Blacksmith.World
             var station = StationOf(part.Part.station);
             if (station == null) return;
             if (_piece != null) _piece.Temperature = 1050f;
-            Eco.minutes = EconomyRules.DayStart;
             _hud.HideOverlay();
             var agent = player.GetComponent<UnityEngine.AI.NavMeshAgent>();
             agent.Warp(station.Approach.position);
@@ -66,19 +53,6 @@ namespace Blacksmith.World
                 _piece.Temperature = 1000f;
                 _hud.Toast("[점검] 쇠를 1,000℃로");
             }
-            if (kb.f7Key.wasPressedThisFrame)
-            {
-                Eco.money += 100;
-                Eco.reputation += 5;
-                Persist();
-                _hud.Toast("[점검] 돈 +100 · 평판 +5");
-            }
-            if (kb.f8Key.wasPressedThisFrame)
-            {
-                Eco.minutes = EconomyRules.DayStart;
-                Persist();
-                _hud.Toast("[점검] 아침 8시로");
-            }
         }
 
         void DebugSkip()
@@ -86,7 +60,7 @@ namespace Blacksmith.World
             var recipe = Recipe;
             if (recipe == null)
             {
-                _hud.Toast("[점검] 먼저 게시판에서 만들기를 시작하세요");
+                _hud.Toast("[점검] 먼저 게시판에서 만들 물건을 고르세요");
                 return;
             }
             PartRef part;

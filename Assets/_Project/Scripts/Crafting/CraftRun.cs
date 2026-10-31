@@ -74,11 +74,5 @@ namespace Blacksmith.Crafting
         public string tierKey;
         public List<StageRecord> stages = new();
         public string finishedAt;
-        // 경영: 시장에 팔았는가, 어느 의뢰에 납품했는가(0 = 아직)
-        public bool sold;
-        public int deliveredTo;
-        public int day;
-
-        public bool InStock => !sold && deliveredTo == 0;
     }
 }

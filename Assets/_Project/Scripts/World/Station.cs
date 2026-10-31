@@ -10,7 +10,6 @@ namespace Blacksmith.World
         Work,
         Board,
         Rack,
-        Customer,   // 의뢰를 들고 찾아온 손님(실행 중에 생긴다)
     }
 
     // 작업대 공통. 대장장이가 approach 자리에 와서 붙으면 view 카메라로 넘어간다.
